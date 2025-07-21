@@ -1,11 +1,15 @@
 const roomTypeRepo = require('../repositories/roomTypeRepository');
 
 exports.getAllRoomTypes = async () => {
-  return await roomTypeRepo.findAll();
+  const roomTypes = await roomTypeRepo.findAll();
+  // Return plain JSON objects by calling toJSON()
+  return roomTypes.map(rt => rt.toJSON());
 };
 
 exports.getRoomTypeById = async (id) => {
-  return await roomTypeRepo.findById(id);
+  const roomType = await roomTypeRepo.findById(id);
+  if (!roomType) return null;
+  return roomType.toJSON();
 };
 
 exports.createRoomType = async (name) => {
