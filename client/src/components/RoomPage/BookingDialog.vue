@@ -8,7 +8,7 @@
         v-on="on"
         :disabled="!isAvailable"
       >
-        ລາຍລະອຽດເພີ່ມເຕີມ
+        Booking Now
       </v-btn>
     </template>
 
