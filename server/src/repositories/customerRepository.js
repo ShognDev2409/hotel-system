@@ -22,3 +22,10 @@ exports.createCustomer = async (customerData) => {
   );
   return result.insertId;
 };
+exports.getAllCustomers = async () => {
+  const [rows] = await pool.query(`
+    SELECT c_id, name, last_name, gender, birthday, tel, email, address
+    FROM customer
+  `);
+  return rows;
+};
