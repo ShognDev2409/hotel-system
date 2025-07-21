@@ -1,0 +1,24 @@
+const pool = require('../config/database');
+
+exports.findByEmail = async (email) => {
+  const [rows] = await pool.query('SELECT * FROM customer WHERE email = ?', [email]);
+  return rows[0];
+};
+
+exports.createCustomer = async (customerData) => {
+  const [result] = await pool.query(
+    `INSERT INTO customer (name, last_name, gender, birthday, tel, email, address, password)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      customerData.name,
+      customerData.last_name,
+      customerData.gender,
+      customerData.birthday,
+      customerData.tel,
+      customerData.email,
+      customerData.address,
+      customerData.password
+    ]
+  );
+  return result.insertId;
+};

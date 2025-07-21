@@ -17,6 +17,9 @@ const healthRoutes = require('./src/routes/healthRoutes');
 app.use('/api/health', healthRoutes); // <--- Register your route here
 
 
+const authRoutes = require('./src/routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
 const roomTypeRoutes = require('./src/routes/roomTypeRoutes');
 app.use('/api/room-types', roomTypeRoutes);
 // 404 handler
