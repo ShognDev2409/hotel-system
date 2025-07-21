@@ -28,3 +28,7 @@ exports.deleteRoom = async (id) => {
     const result = await roomRepo.remove(id);
     return result.affectedRows > 0;
 };
+exports.updateRoomStatus = async (roomId, status) => {
+    const result = await roomRepo.updateStatus(roomId, status);
+    return result.affectedRows > 0;
+};
