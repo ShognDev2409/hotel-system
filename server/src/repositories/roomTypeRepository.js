@@ -1,13 +1,17 @@
 const db = require('../config/database');
+const RoomType = require('../models/roomTypeModel');
 
 const findAll = async () => {
   const [rows] = await db.query('SELECT id, name FROM room_type');
-  return rows;
+  // Wrap each row as a RoomType instance
+  return rows.map(row => new RoomType(row.id, row.name));
 };
 
 const findById = async (id) => {
   const [rows] = await db.query('SELECT id, name FROM room_type WHERE id = ?', [id]);
-  return rows[0];
+  if (rows.length === 0) return null;
+  const row = rows[0];
+  return new RoomType(row.id, row.name);
 };
 
 const insert = async (name) => {
