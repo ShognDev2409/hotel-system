@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const roomTypeController = require('./src/controllers/roomTypeController');
 const roomController = require('./src/controllers/roomController');
+const detailController = require('./src/controllers/roomDetailController');
 
 const app = express();
 app.use(cors());
@@ -23,6 +24,13 @@ app.put('/api/rooms/:id', roomController.updateRoom);
 app.delete('/api/rooms/:id', roomController.deleteRoom);
 app.get('/api/rooms/:id/available', roomController.checkAvailable);
 
+// room detail 
+
+app.get('/api/details', detailController.getAllDetails);
+app.get('/api/details/:id', detailController.getDetailById);
+app.post('/api/details', detailController.createDetail);
+app.put('/api/details/:id', detailController.updateDetail);
+app.delete('/api/details/:id', detailController.deleteDetail);
 // 404
 app.all('*', (req, res) => {
   res.status(404).json({
