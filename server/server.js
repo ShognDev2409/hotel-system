@@ -4,8 +4,8 @@ const cors = require('cors');
 const roomTypeController = require('./src/controllers/roomTypeController');
 const roomController = require('./src/controllers/roomController');
 const detailController = require('./src/controllers/roomDetailController');
-// const authRoutes = require('./src/routes/authRoutes');
 const customerController = require('./src/controllers/customerController');
+const bookingController = require('./src/controllers/bookController');
 
 const app = express();
 app.use(cors());
@@ -40,6 +40,21 @@ app.get('/api/details/:id', detailController.getDetailById);
 app.post('/api/details', detailController.createDetail);
 app.put('/api/details/:id', detailController.updateDetail);
 app.delete('/api/details/:id', detailController.deleteDetail);
+
+//booking
+
+app.get('/api/bookings', bookingController.getAllBookings);
+app.get('/api/bookings/:id', bookingController.getBookingById);
+app.get('/api/bookings/history/:cus_id', bookingController.getBookingHistory);
+app.post('/api/bookings', bookingController.createBookingWithDetail);
+app.put('/api/bookings/:id/status', bookingController.updateBookingStatus);
+app.put('/api/bookings/:id/approve', bookingController.approveBooking);
+app.put('/api/bookings/:id/reject', bookingController.rejectBooking);
+app.put('/api/bookings/:id/check_in', bookingController.checkInBooking);
+app.put('/api/bookings/:id/check_out', bookingController.checkOutBooking);
+app.delete('/api/bookings/:id', bookingController.deleteBooking);
+
+
 // 404
 app.all('*', (req, res) => {
   res.status(404).json({
