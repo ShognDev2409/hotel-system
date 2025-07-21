@@ -2,18 +2,26 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const roomTypeController = require('./src/controllers/roomTypeController');
-const healthController = require('./src/controllers/healthController');
+const roomController = require('./src/controllers/roomController');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Routes
+// room type 
 app.get('/api/room-types', roomTypeController.getAllRoomTypes);
 app.get('/api/room-types/:id', roomTypeController.getRoomTypeById);
 app.post('/api/room-types', roomTypeController.createRoomType);
 app.put('/api/room-types/:id', roomTypeController.updateRoomType);
 app.delete('/api/room-types/:id', roomTypeController.deleteRoomType);
+
+// room
+app.get('/api/rooms', roomController.getAllRooms);
+app.get('/api/rooms/:id', roomController.getRoomById);
+app.post('/api/rooms', roomController.createRoom);
+app.put('/api/rooms/:id', roomController.updateRoom);
+app.delete('/api/rooms/:id', roomController.deleteRoom);
+app.get('/api/rooms/:id/available', roomController.checkAvailable);
 
 // 404
 app.all('*', (req, res) => {
