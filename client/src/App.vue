@@ -1,10 +1,10 @@
 <template>
-  <div id="app">
-    <Navbar v-if="!isAdminRoute" />
+  <v-app id="app">
+      <Navbar v-if="!isAdminRoute" />
     <router-view> 
     </router-view>
     <Footer v-if="!isAdminRoute" />
-  </div>
+  </v-app>
 </template>
 
 <script>
