@@ -6,6 +6,12 @@ const findAll = async () => {
              rt.name AS roomTypeName
       FROM room r
       LEFT JOIN room_type rt ON r.RoomType_id = rt.id
+        ORDER BY 
+        CASE 
+          WHEN r.status = 'available' THEN 1 
+          ELSE 2 
+        END,
+        r.name ASC
     `);
     return rows;
   };
@@ -44,7 +50,15 @@ const remove = async (id) => {
   return result;
 };
 
+const updateStatus = async (id, status) => {
+  const [result] = await db.query(
+    'UPDATE room SET status = ? WHERE id = ?',
+    [status, id]
+  );
+  return result;
+};
 module.exports = {
+  updateStatus,
   findAll,
   findById,
   insert,
