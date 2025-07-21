@@ -12,17 +12,22 @@
     />
 
     
-  <div class="room-list"><v-layout column>
-    <v-col>
-    <RoomCard
-      v-for="room in filteredRooms"
-      :key="room.id"
-      :room="room"
-      @book="handleBookNow(room.id)"
-    />
-    <div class=""></div>
-    </v-col>
-  </v-layout></div>
+  <div class="room-list">
+    <v-row dense>
+      <v-col
+        cols="12"
+        v-for="room in filteredRooms"
+        :key="room.id"
+        class="mb-4" 
+      >
+        <RoomCard
+          :room="room"
+          @book="handleBookNow(room.id)"
+          @details="openDetails(room)"
+        />
+      </v-col>
+    </v-row>
+  </div>
   
   </div>
 </template>
