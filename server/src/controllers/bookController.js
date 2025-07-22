@@ -44,10 +44,11 @@ exports.getBookingDetails = async (req, res, next) => {
 exports.createBookingWithDetail = async (req, res, next) => {
   try {
     const { booking, detail } = req.body;
+    
 
     // Validate required fields
     if (!booking || !detail || !booking.cus_id || !booking.startDate || 
-        !booking.endDate || !detail.Room_id) {
+        !booking.endDate || !detail.Room_id || !booking.emp_id) {
       return res.status(400).json({ success: false, message: 'Missing required data' });
     }
 
@@ -63,7 +64,10 @@ exports.createBookingWithDetail = async (req, res, next) => {
       });
     }
 
+    // Add emp_id to the booking
+    
     booking.status = 'pending';
+    
     const result = await bookService.createBookingWithDetail(booking, detail);
 
     // UPDATE ROOM STATUS TO BOOKED AFTER SUCCESSFUL BOOKING

@@ -1,5 +1,5 @@
 class Booking {
-    constructor(id, User_id, startDate, endDate, status, cus_id, payment_image) {
+    constructor(id, User_id, startDate, endDate, status, cus_id, payment_image, emp_id) {
       this.id = id;
       this.User_id = User_id;
       this.startDate = startDate;
@@ -7,6 +7,7 @@ class Booking {
       this.status = status;
       this.cus_id = cus_id;
       this.payment_image = payment_image;
+      this.emp_id = emp_id;
     }
   
     toJSON() {
@@ -18,6 +19,7 @@ class Booking {
         status: this.status,
         cus_id: this.cus_id,
         payment_image: this.payment_image,
+        emp_id: this.emp_id
       };
     }
   }
