@@ -11,71 +11,76 @@
       @search="applyFilters"
     />
 
-    
-  <div class="room-list">
-    <v-row dense>
-      <v-col
-        cols="12"
-        v-for="room in filteredRooms"
-        :key="room.id"
-        class="mb-4" 
-      >
-        <RoomCard
-          :room="room"
-          @book="handleBookNow(room.id)"
-          @details="openDetails(room)"
-        />
-      </v-col>
-    </v-row>
-  </div>
-  
+    <div class="room-list">
+      <v-row dense>
+        <v-col
+          cols="12"
+          v-for="room in filteredRooms"
+          :key="room.id"
+          class="mb-4"
+        >
+          <RoomCard
+            :room="room"
+            @book="handleBookNow(room.id)"
+            @details="openDetails(room)"
+          />
+        </v-col>
+      </v-row>
+    </div>
   </div>
 </template>
 
 <script>
-import HeroBanner from '@/components/RoomPage/HeroBanner.vue'
-import RoomCard from '@/components/RoomPage/RoomCard.vue'
-import SearchBar from '@/components/RoomPage/SearchBar.vue'
-
-import doubleImg from '@/assets/image/double.jpg'
-import familyImg from '@/assets/image/family.jpg'
-import roomviewImg from '@/assets/image/roomview.jpg'
-
-const ROOMS = [
-  { id:1, name:'Double Room',                  description:'Spacious…', image:doubleImg,   price:450000, maxGuests:2, available:true,  features:['Free WiFi','Free Parking'] },
-  { id:2, name:'Double Room (Thartluang View)',description:'Elegant…',  image:roomviewImg, price:500000, maxGuests:1, available:true,  features:['Free WiFi','Free Parking'] },
-  { id:3, name:'Triple Room',                  description:'Comfortable…',image:familyImg,   price:600000, maxGuests:4, available:true,  features:['Free WiFi','Free Parking'] },
-  { id:4, name:'Twin Room',                    description:'Luxurious…', image:doubleImg,   price:450000, maxGuests:2, available:false, features:['Free WiFi','Free Parking'] }
-]
+import HeroBanner  from '@/components/RoomPage/HeroBanner.vue'
+import RoomCard    from '@/components/RoomPage/RoomCard.vue'
+import SearchBar   from '@/components/RoomPage/SearchBar.vue'
+import { fetchRooms } from '@/services/room.js'
 
 export default {
   name: 'RoomsPage',
   components: { HeroBanner, SearchBar, RoomCard },
+
   data() {
     return {
-      minDate: new Date().toISOString().substr(0,10),
+      minDate: new Date().toISOString().substr(0, 10),
       guestOptions: [
-        '1 guest, 1 room','2 guests, 1 room','3 guests, 1 room',
-        '4 guests, 2 rooms','5 guests, 2 rooms','6 guests, 3 rooms'
+        '1 guest, 1 room',
+        '2 guests, 1 room',
+        '3 guests, 1 room',
+        '4 guests, 2 rooms',
+        '5 guests, 2 rooms',
+        '6 guests, 3 rooms'
       ],
       filters: {
         checkIn:  '',
         checkOut: '',
         guests:   '2 guests, 1 room'
       },
-      rooms: ROOMS
+      rooms: []  // will be populated in created()
     }
   },
+
+  async created() {
+    try {
+      // fetchRooms returns Room instances with description & image already attached
+      this.rooms = await fetchRooms()
+    } catch (err) {
+      console.error('Error fetching rooms:', err)
+    }
+  },
+
   computed: {
     filteredRooms() {
-      // plug in real filter logic here, for now just:
+      // TODO: implement real date/guest filtering here
       return this.rooms
     }
   },
+
   methods: {
     applyFilters() {
-      // e.g. filter this.rooms by date / guests…
+      // trigger any filtering or re-fetching logic
     },
+
     handleBookNow(roomId) {
       if (!this.$store.getters.isAuthenticated) {
         return this.$router.push({
@@ -89,12 +94,17 @@ export default {
       this.$router.push({
         name: 'Booking',
         params: { roomId },
-        query: { 
+        query: {
           checkIn:  this.filters.checkIn,
           checkOut: this.filters.checkOut,
           guests:   this.filters.guests
         }
       })
+    },
+
+    openDetails(room) {
+      // e.g. show a modal or navigate to a details page
+      this.$router.push({ name: 'RoomDetails', params: { roomId: room.id } })
     }
   }
 }
@@ -103,10 +113,6 @@ export default {
 <style scoped>
 .rooms-page {
   background: #f5f5f5;
-}
-.rooms-container {
-  padding-top: 64px;
-  padding-bottom: 64px;
 }
 .room-list {
   max-width: 1200px;

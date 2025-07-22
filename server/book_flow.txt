@@ -1,0 +1,172 @@
+
+2. Test API Flow
+Step 1: Get Available Rooms
+bashGET http://localhost:3000/api/rooms
+
+Expected Response:
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Room 101",
+      "status": "available",
+      "price": 100,
+      "roomTypeName": "Standard",
+      "roomType_id": 1
+    },
+    {
+      "id": 2,
+      "name": "Room 201", 
+      "status": "available",
+      "price": 150,
+      "roomTypeName": "Deluxe",
+      "roomType_id": 2
+    }
+  ]
+}
+Step 2: Check Room Availability
+bashGET http://localhost:3000/api/rooms/1/available
+
+Expected Response:
+{
+  "success": true,
+  "roomId": "1",
+  "available": true
+}
+Step 3: Create Booking (Updated Structure)
+bashPOST http://localhost:3000/api/bookings
+Content-Type: application/json
+
+{
+  "booking": {
+    "cus_id": 1,
+    "startDate": "2025-07-25",
+    "endDate": "2025-07-27",
+    "User_id": 1,
+    "payment_image": null
+  },
+  "detail": {
+    "Room_id": 1,
+    "description": "Weekend getaway booking"
+  }
+}
+
+Expected Response:
+{
+  "success": true,
+  "message": "Booking created and room reserved",
+  "data": {
+    "bookingId": 1,
+    "detailId": 1
+  }
+}
+Step 4: Verify Room Status Changed
+bashGET http://localhost:3000/api/rooms/1
+
+Expected Response:
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Room 101",
+    "status": "booked",
+    "price": 100,
+    "roomTypeName": "Standard",
+    "roomType_id": 1
+  }
+}
+Step 5: Get Booking Details
+bashGET http://localhost:3000/api/bookings/1
+
+Expected Response:
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "User_id": 1,
+    "startDate": "2025-07-25",
+    "endDate": "2025-07-27",
+    "status": "pending",
+    "cus_id": 1,
+    "payment_image": null,
+    "total_stay_days": 2,
+    "total_price": 200,
+    "details": [
+      {
+        "id": 1,
+        "Room_id": 1,
+        "Check_in_Date": null,
+        "Check_out_Date": null
+      }
+    ]
+  }
+}
+Step 6: Try Booking Same Room (Should Fail)
+bashPOST http://localhost:3000/api/bookings
+# Same payload as Step 3
+
+Expected Response:
+{
+  "success": false,
+  "message": "Room is not available for booking"
+}
+Step 7: Approve Booking
+bashPUT http://localhost:3000/api/bookings/1/approve
+
+Expected Response:
+{
+  "success": true,
+  "message": "Booking approved"
+}
+Step 8: Check In
+bashPATCH http://localhost:3000/api/booking-details/1/checkin
+Content-Type: application/json
+
+{
+  "checkInDate": "2025-07-25"
+}
+
+Expected Response:
+{
+  "success": true,
+  "message": "Check-in updated"
+}
+Step 9: Check Out (Room Should Become Available)
+bashPATCH http://localhost:3000/api/booking-details/1/checkout
+Content-Type: application/json
+
+{
+  "checkOutDate": "2025-07-27"
+}
+
+Expected Response:
+{
+  "success": true,
+  "message": "Check-out completed and room available"
+}
+Step 10: Verify Room Available Again
+bashGET http://localhost:3000/api/rooms/1/available
+
+Expected Response:
+{
+  "success": true,
+  "roomId": "1",
+  "available": true
+}
+Key Database Fields Used:
+
+Customer: c_id (primary key)
+Room: id, name, status, RoomType_id, price
+Booking: cus_id, startDate, endDate, total_stay_days, total_price
+BookingDetails: Booking_id, Room_id, Check_in_Date, Check_out_Date
+
+Expected Flow Results:
+
+✅ Initial room status: "available"
+✅ After booking: room status = "booked"
+❌ Second booking attempt fails
+✅ After checkout: room status = "available"
+✅ Booking history shows complete lifecycle
+
+This tests the complete booking lifecycle with your actual database structure!
