@@ -13,7 +13,6 @@ const findAll = async () => {
         END,
         r.name ASC
     `);
-    
     return rows;
   };
   

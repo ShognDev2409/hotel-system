@@ -175,27 +175,82 @@ const deleteBooking = async (id) => {
     return result.affectedRows > 0;
 };
 
-exports.updateCheckOut = async (req, res, next) => {
-    try {
-      const { checkOutDate } = req.body;
-      const updated = await bookService.updateCheckOutDate(req.params.detailId, checkOutDate);
-      
-      if (!updated) {
-        return res.status(404).json({ success: false, message: 'Detail not found' });
-      }
-      
-      // GET ROOM ID FROM BOOKING DETAIL
-      const detail = await bookService.getBookingDetailById(req.params.detailId);
-      if (detail && detail.Room_id) {
-        // FREE THE ROOM AFTER CHECKOUT
-        await roomService.updateRoomStatus(detail.Room_id, 'available');
-      }
-      
-      res.json({ success: true, message: 'Check-out completed and room available' });
-    } catch (err) {
-      next(err);
+  const getTotalRevenue = async (filters = {}) => {
+    const result = await bookRepo.getTotalRevenue(filters);
+    return result?.total || 0;
+};
+
+const getThisMonthRevenue = async (month, year) => {
+    const targetMonth = month || new Date().getMonth() + 1;
+    const targetYear = year || new Date().getFullYear();
+    const result = await bookRepo.getMonthlyRevenue(targetMonth, targetYear);
+    return result?.total || 0;
+};
+
+const getAverageRevenue = async (filters = {}) => {
+    const result = await bookRepo.getAverageRevenue(filters);
+    return result?.average || 0;
+};
+
+const getGrowthPercentage = async (month, year) => {
+    const targetMonth = month || new Date().getMonth() + 1;
+    const targetYear = year || new Date().getFullYear();
+    
+    const prevMonth = targetMonth === 1 ? 12 : targetMonth - 1;
+    const prevYear = targetMonth === 1 ? targetYear - 1 : targetYear;
+    
+    const thisMonthRevenue = await bookRepo.getMonthlyRevenue(targetMonth, targetYear);
+    const lastMonthRevenue = await bookRepo.getMonthlyRevenue(prevMonth, prevYear);
+    
+    const thisAmount = thisMonthRevenue?.total || 0;
+    const lastAmount = lastMonthRevenue?.total || 0;
+    
+    let percentage = 0;
+    let direction = 'stable';
+    
+    if (lastAmount > 0) {
+        percentage = Math.round(((thisAmount - lastAmount) / lastAmount) * 100);
+        direction = percentage > 0 ? 'up' : percentage < 0 ? 'down' : 'stable';
+    } else if (thisAmount > 0) {
+        percentage = 100;
+        direction = 'up';
     }
-  };
+    
+    return {
+        percentage: Math.abs(percentage),
+        direction,
+        comparison: {
+            thisMonth: thisAmount,
+            lastMonth: lastAmount,
+            difference: thisAmount - lastAmount
+        }
+    };
+};
+const getBookingReport = async (filters = {}) => {
+    const reports = await bookRepo.getBookingReport(filters);
+    const count = await bookRepo.getBookingReportCount(filters);
+    
+    return {
+        data: reports.map(report => ({
+            booking_id: report.booking_id,
+            customer_name: report.customer_name,
+            room_name: report.room_name,
+            room_type: report.room_type_name,
+            start_date: formatDateToYMD(report.startDate),
+            end_date: formatDateToYMD(report.endDate),
+            status: report.status,
+            total_price: report.total_price
+        })),
+        total: count.total,
+        filters: filters
+    };
+};
+
+const getBookingSummary = async (filters = {}) => {
+    const result = await bookRepo.getBookingSummary(filters);
+    return result;
+};
+
 module.exports = {
     createBookingWithDetail,
     getBookingById,
@@ -206,4 +261,10 @@ module.exports = {
     updateCheckOutDate,
     updateStatus,
     deleteBooking,
+    getTotalRevenue,
+    getThisMonthRevenue,
+    getAverageRevenue,
+    getGrowthPercentage,
+    getBookingReport,
+    getBookingSummary
 };

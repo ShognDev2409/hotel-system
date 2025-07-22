@@ -24,11 +24,12 @@ exports.getRoomById = async (req, res, next) => {
 // Create room
 exports.createRoom = async (req, res, next) => {
   try {
-    const { name, status, RoomType_id, price } = req.body;
-    if (!name || !status || RoomType_id == null || price == null) {
+    const { name, RoomType_id, price, max_guests } = req.body;
+    if (!name  || RoomType_id == null || price == null) {
       return res.status(400).json({ success: false, message: 'All fields are required' });
     }
-    const result = await roomService.createRoom({ name, status, RoomType_id, price });
+    const status = "available";
+    const result = await roomService.createRoom({ name, status, RoomType_id, price, max_guests });
     res.status(201).json({ success: true, id: result.insertId, ...req.body });
   } catch (err) {
     next(err);
@@ -38,11 +39,12 @@ exports.createRoom = async (req, res, next) => {
 // Update room
 exports.updateRoom = async (req, res, next) => {
   try {
-    const { name, status, RoomType_id, price } = req.body;
+    //when update always send status in (available, booked, maintenance)
+    const { name, status, RoomType_id, price, max_guests } = req.body;
     if (!name || !status || RoomType_id == null || price == null) {
       return res.status(400).json({ success: false, message: 'All fields are required' });
     }
-    const success = await roomService.updateRoom(req.params.id, { name, status, RoomType_id, price });
+    const success = await roomService.updateRoom(req.params.id, { name, status, RoomType_id, price, max_guests });
     if (!success) return res.status(404).json({ success: false, message: 'Room not found' });
     res.json({ success: true, id: req.params.id, ...req.body });
   } catch (err) {

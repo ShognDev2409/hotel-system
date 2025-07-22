@@ -27,6 +27,10 @@ class CustomerService {
   async getCustomerList() {
     return await customerRepository.getAllCustomers();
   }
+
+  async getCustomerById(id) {
+    return await customerRepository.findByID(id);
+  }
 }
 
 module.exports = new CustomerService();

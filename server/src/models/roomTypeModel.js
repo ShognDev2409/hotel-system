@@ -9,7 +9,6 @@ class RoomType {
       return {
         id: this.id,
         name: this.name,
-        // you can add or remove fields here, e.g. hide internal props
       };
     }
   }

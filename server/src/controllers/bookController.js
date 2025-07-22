@@ -1,5 +1,6 @@
 const bookService = require('../services/bookService');
 const roomService = require('../services/roomService');
+
 exports.getAllBookings = async (req, res, next) => {
   try {
     const bookings = await bookService.getAllBookings();
@@ -39,6 +40,7 @@ exports.getBookingDetails = async (req, res, next) => {
     next(err);
   }
 };
+
 exports.createBookingWithDetail = async (req, res, next) => {
   try {
     const { booking, detail } = req.body;
@@ -157,3 +159,130 @@ async function updateStatusHelper(req, res, next, status) {
     next(err);
   }
 }
+
+exports.getDashboardStats = async (req, res, next) => {
+  try {
+    const totalRevenue = await bookService.getTotalRevenue();
+    const thisMonthRevenue = await bookService.getThisMonthRevenue();
+    const averageRevenue = await bookService.getAverageRevenue();
+    const growthPercentage = await bookService.getGrowthPercentage();
+
+    res.json({
+      success: true,
+      data: {
+        totalRevenue: Math.round(totalRevenue),
+        thisMonthRevenue: Math.round(thisMonthRevenue),
+        averageRevenue: Math.round(averageRevenue),
+        growthPercentage: growthPercentage
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.updateCheckOut = async (req, res, next) => {
+    try {
+      const { checkOutDate } = req.body;
+      const updated = await bookService.updateCheckOutDate(req.params.detailId, checkOutDate);
+      
+      if (!updated) {
+        return res.status(404).json({ success: false, message: 'Detail not found' });
+      }
+      
+      const detail = await bookService.getBookingDetailById(req.params.detailId);
+      if (detail && detail.Room_id) {
+        await roomService.updateRoomStatus(detail.Room_id, 'available');
+      }
+      
+      res.json({ success: true, message: 'Check-out completed and room available' });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+// Get dashboard summary with optional month/year filtering
+exports.getDashboardSummary = async (req, res, next) => {
+  try {
+    // Get query parameters for filtering
+    const { month, year, startDate, endDate } = req.query;
+    
+    // Prepare filters object based on provided query params
+    const filters = {};
+    if (month && year) {
+      filters.month = parseInt(month, 10);
+      filters.year = parseInt(year, 10);
+    } else if (startDate && endDate) {
+      filters.startDate = startDate;
+      filters.endDate = endDate;
+    } else if (year) {
+      filters.year = parseInt(year, 10);
+    }
+
+    // Get all metrics in parallel
+    const [
+      totalRevenue,
+      thisMonthRevenue,
+      averageRevenue,
+      growthData
+    ] = await Promise.all([
+      bookService.getTotalRevenue(filters),
+      bookService.getThisMonthRevenue(
+        filters.month || new Date().getMonth() + 1,
+        filters.year || new Date().getFullYear()
+      ),
+      bookService.getAverageRevenue(filters),
+      bookService.getGrowthPercentage(
+        filters.month || new Date().getMonth() + 1,
+        filters.year || new Date().getFullYear()
+      )
+    ]);
+
+    // Prepare and send response
+    res.json({
+      success: true,
+      data: {
+        totalRevenue: Math.round(totalRevenue),
+        thisMonthRevenue: Math.round(thisMonthRevenue),
+        averageRevenue: Math.round(averageRevenue),
+        growthPercentage: growthData.percentage,
+        direction: growthData.direction,
+        comparison: growthData.comparison,
+        filters: {
+          month: filters.month || null,
+          year: filters.year || new Date().getFullYear(),
+          startDate: filters.startDate || null,
+          endDate: filters.endDate || null
+        },
+        currency: 'LAK'
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getBookingReport = async (req, res, next) => {
+  try {
+    const filters = {
+      status: req.query.status || 'all',
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+      limit: req.query.limit || 50,
+      offset: req.query.offset || 0
+    };
+    
+    const result = await bookService.getBookingReport(filters);
+    const summary = await bookService.getBookingSummary(filters);
+    
+    res.json({
+      success: true,
+      data: result.data,
+      summary: summary,
+      pagination: result.pagination,
+      filters: result.filters
+    });
+  } catch (err) {
+    next(err);
+  }
+};

@@ -26,7 +26,16 @@ const customerController = {
     } catch (err) {
       res.status(500).json({ error: 'Failed to fetch customers' });
     }
-  }
+  },
+  async getCustomerById (req, res) {
+    try {
+      console.log(req.params.id);
+      const customer = await customerService.getCustomerById(req.params.id);
+      res.status(200).json(customer);
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to fetch customer' });
+    }
+  } 
 };
 
 module.exports = customerController;

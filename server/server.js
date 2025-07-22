@@ -28,10 +28,11 @@ app.get('/api/rooms/:id/available', roomController.checkAvailable);
 
 
 // auth routes
-// app.use('/api/auth', authRoutes);
 app.post('/api/register', customerController.register);
 app.post('/api/login', customerController.login);
 app.get('/api/users', customerController.getCustomerList);
+
+app.get('/api/customer/:id', customerController.getCustomerById) 
 
 
 // room detail 
@@ -47,7 +48,7 @@ app.get('/api/bookings', bookingController.getAllBookings);
 app.get('/api/bookings/:id', bookingController.getBookingById);
 app.get('/api/bookings/history/:cus_id', bookingController.getBookingHistory);
 app.post('/api/bookings', bookingController.createBookingWithDetail);
-app.put('/api/bookings/:id/status', bookingController.updateBookingStatus);
+app.put('/api/bookings/:id/status', bookingController.updateBookingStatus); //via payload
 app.put('/api/bookings/:id/approve', bookingController.approveBooking);
 app.put('/api/bookings/:id/reject', bookingController.rejectBooking);
 app.put('/api/bookings/:id/check_in', bookingController.checkInBooking);
@@ -57,6 +58,13 @@ app.delete('/api/bookings/:id', bookingController.deleteBooking);
 app.get('/api/bookings/:id/details', bookingController.getBookingDetails);
 app.patch('/api/booking-details/:detailId/checkin', bookingController.updateCheckIn);
 app.patch('/api/booking-details/:detailId/checkout', bookingController.updateCheckOut);
+
+// dashboard
+app.get('/api/booking/report', bookingController.getBookingReport);
+
+// income page with query param
+app.get('/api/income/report', bookingController.getDashboardSummary);  
+
 
 // 404
 app.all('*', (req, res) => {
