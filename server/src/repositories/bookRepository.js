@@ -3,8 +3,8 @@ const db = require('../config/database');
 const insertBooking = async (booking) => {
     const sql = `
         INSERT INTO booking 
-        (User_id, startDate, endDate, status, cus_id, payment_image, total_stay_days, total_price)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        (User_id, startDate, endDate, status, cus_id, payment_image, total_stay_days, total_price, emp_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     
     const params = [
         booking.User_id,
@@ -15,6 +15,7 @@ const insertBooking = async (booking) => {
         booking.payment_image,
         booking.total_stay_days,
         booking.total_price,
+        booking.emp_id || null  // Make emp_id optional
     ];
     
     const [result] = await db.query(sql, params);
