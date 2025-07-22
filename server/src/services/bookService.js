@@ -1,14 +1,18 @@
 const bookRepo = require('../repositories/bookRepository');
+const roomRepo = require('../repositories/roomRepository');
+const db = require('../config/database');
 
 // Fixed date formatting function - handles timezone issues
 function formatDateToYMD(date) {
-    if (!date) return null;
+      if (!date) return null;
     const d = new Date(date);
-    // Use local methods to match database timezone
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
 
@@ -144,6 +148,7 @@ const getBookingHistoryByCusId = async (cus_id) => {
 // NEW: Get booking details by booking ID (separate endpoint)
 const getBookingDetailsById = async (bookingId) => {
     const details = await bookRepo.findBookingDetailsById(bookingId);
+    console.log(`Found ${details.length} details for booking ID: ${bookingId}`);
     return details.map(detail => ({
         id: detail.id,
         Booking_id: detail.Booking_id,
@@ -151,6 +156,15 @@ const getBookingDetailsById = async (bookingId) => {
         Check_in_Date: formatDateToYMD(detail.Check_in_Date),
         Check_out_Date: formatDateToYMD(detail.Check_out_Date),
     }));
+};
+
+const getRoomIDbyBookID = async (bookingId) => {
+    const [rows] = await db.query(
+    'SELECT Room_ID FROM bookingdetails WHERE BookDetail_ID = ?',
+    [bookID]
+  );
+  if (rows.length === 0) throw new Error('No room found for this booking ID');
+  return rows[0].Room_ID;
 };
 
 // NEW: Update check-in date for specific booking detail
@@ -161,7 +175,13 @@ const updateCheckInDate = async (detailId, checkInDate) => {
 
 // NEW: Update check-out date for specific booking detail
 const updateCheckOutDate = async (detailId, checkOutDate) => {
+    
     const result = await bookRepo.updateCheckOutDate(detailId, checkOutDate);
+    const detail = await bookRepo.findBookingDetailsById(detailId);
+    console.log(`Updating check-out for detail ID: ${detailId.Room_id}`);
+if (detail) {
+    await roomRepo.updateStatus(detail.Room_id, 'available');
+}
     return result.affectedRows > 0;
 };
 
@@ -295,5 +315,6 @@ module.exports = {
     getGrowthPercentage,
     getBookingReport,
     getBookingSummary,
-    getCheckinReport
+    getCheckinReport,
+    getRoomIDbyBookID,
 };

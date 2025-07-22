@@ -1,6 +1,6 @@
 const bookService = require('../services/bookService');
 const roomService = require('../services/roomService');
-
+const pool = require('../config/database');
 function getTimestamp() {
  const now = new Date();
 
@@ -59,7 +59,6 @@ exports.createBookingWithDetail = async (req, res, next) => {
   try {
     const { booking, detail } = req.body;
     
-
     // Validate required fields
     if (!booking || !detail || !booking.cus_id || !booking.startDate || 
         !booking.endDate || !detail.Room_id || !booking.emp_id) {
@@ -168,69 +167,76 @@ exports.getDashboardStats = async (req, res, next) => {
     next(err);
   }
 };
-// NEW: Update check-in date
 exports.updateCheckIn = async (req, res, next) => {
   try {
-    const { checkInDate } = req.body;
+    const bookID = req.params.id;
+    const detailID = req.params.detailId;
+
+    console.log(`Updating check-in for booking ID: ${bookID} and detail ID: ${detailID}`);
+
     const datenow = getTimestamp();
-    const updated = await bookService.updateCheckInDate(req.params.detailId, datenow);
-    
+    const updated = await bookService.updateCheckInDate(detailID, datenow);
+
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Detail not found' });
     }
-    
-     const detail = await bookService.getBookingDetailsById(req.params.detailId);
-      if (detail && detail.Room_id) {
-        console.log(`Updating room status for Room ID: ${detail.Room_id}`);
-        // Update room status to 'booked'
-        await roomService.updateRoomStatus(detail.Room_id, 'booked');
-        console.log(`Room status updated to 'booked' for Room ID: ${detail.Room_id}`);
-      }
 
-      res.json({ success: true, message: 'Check-In completed and room booked' ,
-         data: {
-          detailId: req.params.detailId,
-             roomId: detail.Room_id,
-          checkOutDate: datenow,
-          timestamp: getTimestamp()
-        }
-      });
+
+    const statusUpdated = await updateRoomStatusByDetailId(detailID, 'booked');
+    if (!statusUpdated) {
+      return res.status(500).json({ success: false, message: 'Failed to update room status' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Check-In completed and room booked',
+      data: {
+        detailId: detailID,
+        bookID,
+        checkInDate: datenow,
+        timestamp: getTimestamp()
+      }
+    });
   } catch (err) {
     next(err);
   }
 };
 
 exports.updateCheckOut = async (req, res, next) => {
-    try {
-      const { checkOutDate } = req.body;
-      const datenow = getTimestamp();
-      const updated = await bookService.updateCheckOutDate(req.params.detailId, datenow);
-      
-      if (!updated) {
-        return res.status(404).json({ success: false, message: 'Detail not found' });
-      }
-      
-      const detail = await bookService.getBookingDetailsById(req.params.detailId);
-      
-      if (detail && detail.Room_id) {
-        await roomService.updateRoomStatus(detail.Room_id, 'available');
-              console.log(`Room status updated to 'available' for Room ID: ${detail.Room_id}`);
-      }
-      
-      res.json({ success: true, message: 'Check-out completed and room available' ,
-        data: {
-          detailId: req.params.detailId,
-          roomId: detail.Room_id,
-          checkOutDate: datenow,
-          timestamp: getTimestamp()
-        }
+  try {
+    const bookID = req.params.id;
+    const detailID = req.params.detailId;
 
-      });
-    } catch (err) {
-      next(err);
+    console.log(`Updating check-out for booking ID: ${bookID} and detail ID: ${detailID}`);
+
+    const datenow = getTimestamp();
+    const updated = await bookService.updateCheckOutDate(detailID, datenow);
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Detail not found' });
     }
-  };
 
+   
+
+    const statusUpdated = await updateRoomStatusByDetailId(detailID, 'Available');
+    if (!statusUpdated) {
+      return res.status(500).json({ success: false, message: 'Failed to update room status' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Check-out completed and room available',
+      data: {
+        detailId: detailID,
+        bookID,
+        checkOutDate: datenow,
+        timestamp: getTimestamp()
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 // Get dashboard summary with optional month/year filtering
 exports.getDashboardSummary = async (req, res, next) => {
   try {
@@ -336,3 +342,16 @@ exports.getCheckinReport = async (req, res, next) => {
     next(err);
   }
 };
+
+
+async function updateRoomStatusByDetailId(detailId, status) {
+  const [result] = await pool.execute(
+    `UPDATE room
+     SET status = ?
+     WHERE id = (
+       SELECT Room_ID FROM bookingdetails WHERE id = ?
+     )`,
+    [status, detailId]
+  );
+  return result.affectedRows > 0;
+}

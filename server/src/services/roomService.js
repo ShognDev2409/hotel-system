@@ -11,7 +11,7 @@ exports.getRoomById = async (id) => {
     const row = await roomRepo.findById(id);
     if (!row) return null;
     return new Room(
-        row.id, row.name, row.status, row.RoomType_id, row.price, row.roomTypeName, row.maxGuests
+        row.id, row.name, row.status, row.RoomType_id, row.price, row.roomTypeName, row.max_guests
     );
 };
 
