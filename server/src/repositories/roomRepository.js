@@ -3,7 +3,7 @@ const db = require('../config/database');
 const findAll = async () => {
     const [rows] = await db.query(`
       SELECT r.id, r.name, r.status, r.RoomType_id, r.price,
-             rt.name AS roomTypeName
+             rt.name AS roomTypeName, r.max_guests
       FROM room r
       LEFT JOIN room_type rt ON r.RoomType_id = rt.id
         ORDER BY 
@@ -13,13 +13,14 @@ const findAll = async () => {
         END,
         r.name ASC
     `);
+    
     return rows;
   };
   
   const findById = async (id) => {
     const [rows] = await db.query(`
       SELECT r.id, r.name, r.status, r.RoomType_id, r.price,
-             rt.name AS roomTypeName
+             rt.name AS roomTypeName, r.max_guests
       FROM room r
       LEFT JOIN room_type rt ON r.RoomType_id = rt.id
       WHERE r.id = ?
@@ -28,19 +29,19 @@ const findAll = async () => {
   };
   
 const insert = async (room) => {
-  const { name, status, RoomType_id, price } = room;
+  const { name, status, RoomType_id, price, max_guests } = room;
   const [result] = await db.query(
-    'INSERT INTO room (name, status, RoomType_id, price) VALUES (?, ?, ?, ?)',
-    [name, status, RoomType_id, price]
+    'INSERT INTO room (name, status, RoomType_id, price, max_guests) VALUES (?, ?, ?, ?, ?)',
+    [name, status, RoomType_id, price, max_guests]
   );
   return result;
 };
 
 const update = async (id, room) => {
-  const { name, status, RoomType_id, price } = room;
+  const { name, status, RoomType_id, price, max_guests } = room;
   const [result] = await db.query(
-    'UPDATE room SET name = ?, status = ?, RoomType_id = ?, price = ? WHERE id = ?',
-    [name, status, RoomType_id, price, id]
+    'UPDATE room SET name = ?, status = ?, RoomType_id = ?, price = ?, max_guests = ? WHERE id = ?',
+    [name, status, RoomType_id, price, max_guests, id]
   );
   return result;
 };
