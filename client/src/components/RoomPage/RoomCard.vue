@@ -12,8 +12,8 @@
 
       <v-col class="d-flex flex-column">
         <v-card-text class="pa-4 text-center flex-grow-1">
-          <h3 class="room-name">{{ room.name }}</h3>
-          <p>this is room description</p>
+          <h3 class="room-name">{{ room.name }} {{ room.roomTypeName }}</h3>
+          <p>{{ room.description }}</p>
           <div class="d-flex align-center justify-center mb-3">
             <span class="price-amount">{{ formatPrice(room.price) }} ກີບ</span>
             <span class="price-per-night">/ ຄືນ</span>
@@ -40,7 +40,6 @@
 </template>
 
 <script>
-// 1. Import the new component
 import BookingDialog from './BookingDialog.vue';
 
 export default {
