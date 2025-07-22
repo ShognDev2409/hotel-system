@@ -155,7 +155,7 @@
                   step="1000"
                 >
               </div>
-              <div class="form-group">
+              <div v-if="showEditModal" class="form-group">
                 <label>ສະຖານະ *</label>
                 <select v-model="roomForm.status" required class="form-input">
                   <option value="available">ວ່າງ</option>
@@ -359,25 +359,21 @@ export default {
     async saveRoom() {
       try {
         this.saving = true
-        
-        const roomData = {
+        let roomData = {
           name: this.roomForm.name,
-          typeId: parseInt(this.roomForm.typeId),
+          RoomType_id: parseInt(this.roomForm.typeId),
           price: parseFloat(this.roomForm.price),
-          status: this.roomForm.status,
-          maxGuests: parseInt(this.roomForm.maxGuests)
+          max_guests: parseInt(this.roomForm.maxGuests)
         }
-        
         let response
-        
         if (this.showAddModal) {
-          // Create new room
+          // Create new room (status not sent)
           response = await axios.post('http://localhost:3000/api/rooms', roomData)
         } else {
-          // Update existing room
-          response = await axios.put(`/api/rooms/${this.roomForm.id}`, roomData)
+          // Update existing room (status sent)
+          roomData.status = this.roomForm.status
+          response = await axios.put(`http://localhost:3000/api/rooms/${this.roomForm.id}`, roomData)
         }
-        
         if (response.data.success) {
           this.$toast.success(this.showAddModal ? 'ເພີ່ມຫ້ອງສຳເລັດ' : 'ແກ້ໄຂຂໍ້ມູນສຳເລັດ')
           await this.fetchRooms()
@@ -433,10 +429,10 @@ export default {
       this.roomForm = {
         id: room.id,
         name: room.name,
-        typeId: room.roomType_id,
+        typeId: room.RoomType_id || room.roomType_id,
         price: room.price,
         status: room.status,
-        maxGuests: room.maxGuests
+        maxGuests: room.max_guests || room.maxGuests
       }
       this.showEditModal = true
     },
