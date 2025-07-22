@@ -58,30 +58,30 @@ export default {
     async onSubmit() {
       this.error = null;
       this.loading = true;
+
       try {
-        const res = await fetch("/api/admin/login", {
+        const res = await fetch("http://127.0.0.1:3000/api/admin/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            user: this.user,
+            name: this.username,      // ← use `name`, not `username`
             password: this.password,
           }),
         });
 
-        // Use the error message from the API if available, otherwise a generic one
         if (!res.ok) {
-            const errorData = await res.json().catch(() => ({})); // Catch cases where response is not valid JSON
-            throw new Error(errorData.message || "Invalid username or password.");
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || "Invalid username or password.");
         }
 
-        const { token, role } = await res.json();
-        if (role !== "admin") {
-          throw new Error("You do not have administrator privileges.");
-        }
+        // assuming your API returns { token, employee: { ... } }
+        const { token, employee } = await res.json();
 
-        // Store credentials and redirect
+        // optionally check role inside `employee` if you have one:
+        // if (employee.role !== 'admin') throw new Error("Not an admin");
+
         localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify({ role }));
+        localStorage.setItem("user", JSON.stringify(employee));
 
         const dest = this.$route.query.redirect || "/admin/dashboard";
         this.$router.replace(dest);
