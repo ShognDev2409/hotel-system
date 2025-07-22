@@ -63,9 +63,9 @@ app.put('/api/bookings/:id/reject', bookingController.rejectBooking);
 app.put('/api/bookings/:id/check_in', bookingController.checkInBooking);
 app.put('/api/bookings/:id/check_out', bookingController.checkOutBooking);
 app.delete('/api/bookings/:id', bookingController.deleteBooking);
-
-app.get('/api/bookings/:id/details', bookingController.getBookingDetails);
 //update booking details
+app.get('/api/bookings/:id/details', bookingController.getBookingDetails);
+
 app.patch('/api/booking-details/:detailId/checkin', bookingController.updateCheckIn);
 app.patch('/api/booking-details/:detailId/checkout', bookingController.updateCheckOut);
 

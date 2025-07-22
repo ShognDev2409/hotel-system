@@ -175,12 +175,6 @@
                 placeholder="ຄົ້ນຫາລູກຄ້າ..."
                 @input="loadCustomerReport"
               >
-              <select v-model="filters.customer.type" class="form-select" @change="loadCustomerReport">
-                <option value="">ທຸກປະເພດ</option>
-                <option value="regular">ລູກຄ້າປົກກະຕິ</option>
-                <option value="vip">ລູກຄ້າ VIP</option>
-                <option value="corporate">ບໍລິສັດ</option>
-              </select>
             </div>
           </div>
 
@@ -193,20 +187,14 @@
             </div>
             <div class="stat-card">
               <div class="stat-content">
-                <div class="stat-value">{{ customerStats.vip }}</div>
-                <div class="stat-label">ລູກຄ້າ VIP</div>
+                <div class="stat-value">{{ customerStats.totalBookings }}</div>
+                <div class="stat-label">ຈຳນວນການຈອງທັງໝົດ</div>
               </div>
             </div>
             <div class="stat-card">
               <div class="stat-content">
-                <div class="stat-value">{{ customerStats.corporate }}</div>
-                <div class="stat-label">ບໍລິສັດ</div>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-content">
-                <div class="stat-value">{{ customerStats.returning }}</div>
-                <div class="stat-label">ກັບມາໃໝ່</div>
+                <div class="stat-value">{{ formatCurrency(customerStats.totalRevenue) }}</div>
+                <div class="stat-label">ຍອດເງີນທັງໝົດ</div>
               </div>
             </div>
           </div>
@@ -217,10 +205,7 @@
                 <tr>
                   <th>ລະຫັດລູກຄ້າ</th>
                   <th>ຊື່ລູກຄ້າ</th>
-                  <th>ອີເມວ</th>
-                  <th>ເບີໂທ</th>
-                  <th>ປະເພດ</th>
-                  <th>ການຈອງ</th>
+                  <th>ຈຳນວນການຈອງ</th>
                   <th>ຍອດເງີນທັງໝົດ</th>
                 </tr>
               </thead>
@@ -228,13 +213,6 @@
                 <tr v-for="customer in customerReportData" :key="customer.id">
                   <td>{{ customer.id }}</td>
                   <td>{{ customer.name }}</td>
-                  <td>{{ customer.email }}</td>
-                  <td>{{ customer.phone }}</td>
-                  <td>
-                    <span :class="['type-badge', customer.type]">
-                      {{ getCustomerTypeLabel(customer.type) }}
-                    </span>
-                  </td>
                   <td>{{ customer.bookingsCount }}</td>
                   <td class="amount">{{ formatCurrency(customer.totalSpent) }}</td>
                 </tr>
@@ -384,9 +362,8 @@ export default {
       // Customer Data
       customerStats: {
         total: 0,
-        vip: 0,
-        corporate: 0,
-        returning: 0
+        totalBookings: 0,
+        totalRevenue: 0
       },
       customerReportData: [],
       // Check-in Data
@@ -518,22 +495,27 @@ export default {
     async loadCustomerReport() {
       this.loading = true
       try {
-        const params = {
-          search: this.filters.customer.search,
-          type: this.filters.customer.type
+        // Use new API endpoint and response structure
+        const response = await axios.get('http://localhost:3000/api/customerReport')
+        this.customerReportData = (response.data.report || []).map(item => ({
+          id: item.c_id,
+          name: item.customer_name,
+          bookingsCount: item.total_bookings,
+          totalSpent: item.total_spent ? parseFloat(item.total_spent) : 0
+        }))
+        this.customerStats = {
+          total: response.data.summary.total_customers || 0,
+          totalBookings: response.data.summary.total_bookings || 0,
+          totalRevenue: response.data.summary.total_revenue ? parseFloat(response.data.summary.total_revenue) : 0
         }
-        
-        const response = await axios.get('http://localhost:3000/api/reports/customers', { params })
-        this.customerReportData = response.data.customers || []
-        this.customerStats = response.data.stats || this.customerStats
       } catch (error) {
         console.error('Error loading customer report:', error)
         // Mock data
         this.customerReportData = [
-          { id: 'C001', name: 'ນາງ ສີດາ', email: 'sida@email.com', phone: '020 5555 1234', type: 'regular', bookingsCount: 3, totalSpent: 3600000 },
-          { id: 'C002', name: 'ທ້າວ ບຸນມີ', email: 'bounmee@email.com', phone: '020 5555 5678', type: 'vip', bookingsCount: 8, totalSpent: 12000000 },
+          { id: 42, name: 'billion kk', bookingsCount: 1, totalSpent: 4000 },
+          { id: 41, name: 'ko ko', bookingsCount: 0, totalSpent: 0 },
         ]
-        this.customerStats = { total: 156, vip: 23, corporate: 12, returning: 89 }
+        this.customerStats = { total: 2, totalBookings: 1, totalRevenue: 4000 }
       } finally {
         this.loading = false
       }

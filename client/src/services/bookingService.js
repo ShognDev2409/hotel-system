@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // The API URL should match your backend.
-const API_URL = "https://hotel-api.phoudthasone.com" || 'http://localhost:3000';
+const API_URL = "http://localhost:3000" || 'http://localhost:3000';
 
 class BookingService {
   constructor() {
