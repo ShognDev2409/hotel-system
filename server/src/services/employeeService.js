@@ -1,11 +1,31 @@
-const EmployeeRepository = require('../repositories/employeeRepository');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const employeeRepository = require('../repositories/employeeRepository');
 
-const EmployeeService = {
-  getAllEmployees: () => EmployeeRepository.getAll(),
-  getEmployeeById: (id) => EmployeeRepository.getById(id),
-  createEmployee: (data) => EmployeeRepository.create(data),
-  updateEmployee: (id, data) => EmployeeRepository.update(id, data),
-  deleteEmployee: (id) => EmployeeRepository.delete(id),
-};
+class EmployeeService {
+  async login({ name, password }) {
+    const employee = await employeeRepository.findByEmail(name);
+    if (!employee) throw new Error('Invalid name or password');
+    
+    // Check if user is admin
+    if (employee.role !== 'admin') {
+      throw new Error('Access denied. Admin privileges required.');
+    }
 
-module.exports = EmployeeService;
+    const match = await bcrypt.compare(password, employee.password);
+    if (!match) throw new Error('Invalid name or password');
+
+    const token = jwt.sign(
+      { e_id: employee.e_id, role: employee.role }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: '24h' }
+    );
+    
+    // Remove password from the response
+    const { password: _, ...employeeWithoutPassword } = employee;
+    
+    return { token, employee: employeeWithoutPassword };
+  }
+}
+
+module.exports = new EmployeeService();

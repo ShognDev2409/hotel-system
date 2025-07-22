@@ -11,6 +11,7 @@ class Employee {
     this.Province_ = data.Province_;
     this.village_id = data.village_id;
     this.role = data.role;
+    this.password = data.password
   }
 }
 

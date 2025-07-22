@@ -286,3 +286,23 @@ exports.getBookingReport = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getCheckinReport = async (req, res, next) => {
+  try {
+    const filters = {
+      date: req.query.date, // Format: 2025-07-22
+      status: req.query.status // 'checked_in', 'checked_out', or 'all'
+    };
+    
+    const result = await bookService.getCheckinReport(filters);
+    
+    res.json({
+      success: true,
+      summary: result.summary,
+      data: result.data,
+      filters: filters
+    });
+  } catch (err) {
+    next(err);
+  }
+};

@@ -317,6 +317,98 @@ const getBookingReportCount = async (filters = {}) => {
     return rows[0];
 };
 
+const getCheckinReport = async (filters = {}) => {
+    let sql = `
+        SELECT 
+            CONCAT('CI', LPAD(b.id, 3, '0')) as checkin_id,
+            CONCAT(c.name, ' ', COALESCE(c.last_name, '')) as customer_name,
+            r.name as room_name,
+            rt.name as room_type,
+            b.startDate,
+            b.endDate,
+            b.total_stay_days,
+            b.status,
+            CASE 
+                WHEN b.status = 'checked_in' THEN 'ກຳລັງພັກ'
+                WHEN b.status = 'checked_out' THEN 'ອອກແລ້ວ'
+                WHEN b.status = 'approved' THEN 'ລໍຖ້າເຂົ້າພັກ'
+                ELSE b.status
+            END as status_lao
+        FROM booking b
+        LEFT JOIN customer c ON b.cus_id = c.c_id
+        LEFT JOIN bookingdetails bd ON b.id = bd.Booking_id
+        LEFT JOIN room r ON bd.Room_id = r.id
+        LEFT JOIN room_type rt ON r.RoomType_id = rt.id
+        WHERE b.status IN ('approved', 'checked_in', 'checked_out')
+    `;
+    
+    let params = [];
+    
+    // Filter by specific date
+    if (filters.date) {
+        sql += ` AND DATE(b.startDate) = ?`;
+        params.push(filters.date);
+    }
+    
+    // Filter by status
+    if (filters.status && filters.status !== 'all') {
+        sql += ` AND b.status = ?`;
+        params.push(filters.status);
+    }
+    
+    // ✅ FIXED: Filter by room type - now uses correct table alias
+    if (filters.roomType) {
+        sql += ` AND rt.name = ?`;
+        params.push(filters.roomType);
+    }
+    
+    sql += ` ORDER BY b.startDate DESC`;
+    
+    const [rows] = await db.query(sql, params);
+    return rows;
+};
+const getCheckinSummary = async (filters = {}) => {
+    let sql = `
+        SELECT 
+            COUNT(*) as total_checkins,
+            SUM(CASE WHEN status = 'checked_in' THEN 1 ELSE 0 END) as currently_staying,
+            SUM(CASE WHEN status = 'checked_out' THEN 1 ELSE 0 END) as checked_out,
+            SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as pending_checkin,
+            ROUND(AVG(total_stay_days), 1) as avg_stay_days,
+            SUM(total_price) as total_revenue
+        FROM booking 
+        WHERE status IN ('approved', 'checked_in', 'checked_out')
+    `;
+    
+    let params = [];
+    
+    if (filters.date) {
+        sql += ` AND DATE(startDate) = ?`;
+        params.push(filters.date);
+    }
+    
+    if (filters.roomType) {
+        sql += ` AND EXISTS (
+            SELECT 1 FROM bookingdetails bd2 
+            JOIN room r2 ON bd2.Room_id = r2.id 
+            JOIN roomtype rt2 ON r2.roomtype_id = rt2.id 
+            WHERE bd2.Booking_id = booking.id AND rt2.name = ?
+        )`;
+        params.push(filters.roomType);
+    }
+    
+    const [rows] = await db.query(sql, params);
+    const result = rows[0];
+    
+    const occupancyRate = result.total_checkins > 0 ? 
+        Math.round((result.currently_staying / result.total_checkins) * 100) : 0;
+    
+    return {
+        ...result,
+        occupancy_rate: occupancyRate
+    };
+};
+
 module.exports = {
     insertBooking,
     insertBookingDetail,
@@ -335,5 +427,7 @@ module.exports = {
     getGrowthPercentage,
     getBookingSummary,
     getBookingReport,
-    getBookingReportCount
+    getBookingReportCount,
+    getCheckinReport,
+    getCheckinSummary
 };
