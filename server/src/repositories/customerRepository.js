@@ -32,3 +32,24 @@ exports.getAllCustomers = async () => {
   `);
   return rows;
 };
+exports.updateCustomer = async (id, data) => {
+  const fields = [];
+  const values = [];
+
+  for (const key in data) {
+    fields.push(`${key} = ?`);
+    values.push(data[key]);
+  }
+
+  values.push(id);
+
+  const sql = `UPDATE customer SET ${fields.join(', ')} WHERE c_id = ?`;
+  const [result] = await pool.query(sql, values);
+  return result.affectedRows > 0;
+};
+
+exports.deleteCustomer = async (id) => {
+  const [result] = await pool.query('DELETE FROM customer WHERE c_id = ?', [id]);
+  return result.affectedRows > 0;
+};
+

@@ -297,523 +297,176 @@
 </template>
 
 <script>
-import axios from 'axios'
+import axios from 'axios';
 
 export default {
-  name: 'StaffManagement',
   data() {
     return {
-      loading: false,
-      saving: false,
-      showModal: false,
-      showDetailsModal: false,
-      isEditing: false,
-      searchQuery: '',
-      userTypeFilter: '',
       staff: [],
-      userTypes: [],
-      provinces: [],
-      districts: [],
-      villages: [],
-      selectedStaff: null,
       form: {
-        id: null,
         name: '',
         last_name: '',
         tel: '',
         gender: '',
         birthday: '',
         idcard: '',
-        Village_id: '',
-        District_id: '',
-        Province_id: '',
-        Village_name: '',
+        District_id: 1,
+        Province_id: 1,
+        village_id: 1,
+        role: '',
+        Province_name: '',
         District_name: '',
-        Province_name: ''
+        Village_name: '',
       },
+      searchQuery: '',
+      userTypeFilter: '',
+      userTypes: [
+        { id: 'admin', name: 'Admin' },
+        { id: 'manager', name: 'Manager' },
+        { id: 'staff', name: 'Staff' }
+      ],
+      loading: false,
+      showModal: false,
+      showDetailsModal: false,
+      selectedStaff: null,
+      isEditing: false,
+      saving: false,
       message: {
         show: false,
-        type: 'success',
-        text: ''
+        text: '',
+        type: ''
       }
     }
   },
   computed: {
     filteredStaff() {
-      let filtered = this.staff;
-      
-      if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase();
-        filtered = filtered.filter(staff => 
-          (staff.name && staff.name.toLowerCase().includes(query)) ||
-          (staff.last_name && staff.last_name.toLowerCase().includes(query)) ||
-          (staff.tel && staff.tel.includes(query)) ||
-          (staff.idcard && staff.idcard.includes(query))
-        );
-      }
-      
+      let filtered = this.staff.filter(staff => {
+        const fullName = `${staff.name} ${staff.last_name}`.toLowerCase();
+        return fullName.includes(this.searchQuery.toLowerCase());
+      });
       if (this.userTypeFilter) {
-        filtered = filtered.filter(staff => staff.user_type_id == this.userTypeFilter);
+        filtered = filtered.filter(s => s.role === this.userTypeFilter);
       }
-      
       return filtered;
     },
     totalStaff() {
       return this.staff.length;
     },
     activeStaff() {
-      return this.staff.filter(staff => staff.user_type_id).length;
+      return this.staff.filter(s => s.role).length;
     }
   },
   mounted() {
-    this.loadStaff();
-    this.loadUserTypes();
-    this.loadProvinces();
-    this.loadFromLocalStorage(); // Load local data on mount
+    this.fetchStaff();
   },
   methods: {
-    // Load all staff from database
-    async loadStaff() {
+    async fetchStaff() {
       this.loading = true;
       try {
-        const response = await axios.get('http://localhost:3000/api/staff');
-        this.staff = response.data.data || [];
-        // Also load any local offline data
-        this.loadFromLocalStorage();
-        console.log('Staff loaded:', this.staff);
-      } catch (error) {
-        console.error('Error loading staff:', error);
-        if (error.code === 'ERR_NETWORK' || error.message.includes('ERR_CONNECTION_REFUSED')) {
-          this.showMessage('ບໍ່ສາມາດເຊື່ອມຕໍ່ກັບເຊີເວີໄດ້ - ກະລຸນາກວດເຊີເວີ', 'error');
-          // Load only local data when server is down
-          this.staff = [];
-          this.loadFromLocalStorage();
-        } else {
-          this.showMessage('ບໍ່ສາມາດໂຫຼດຂໍ້ມູນພະນັກງານໄດ້: ' + (error.response?.data?.message || error.message), 'error');
-        }
+        const res = await axios.get('http://localhost:3000/api/employees');
+        this.staff = res.data;
+      } catch (err) {
+        this.showMessage('ຂໍ້ຜິດພາດໃນການໂຫຼດຂໍ້ມູນ', 'error');
       } finally {
         this.loading = false;
       }
     },
-
-    // Load user types for positions
-    async loadUserTypes() {
-      try {
-        const response = await axios.get('http://localhost:3000/api/user-types');
-        this.userTypes = response.data.data || [];
-      } catch (error) {
-        console.error('Error loading user types:', error);
-        // Fallback data if API fails
-        this.userTypes = [
-          { id: 1, name: 'ຜູ້ຈັດການ' },
-          { id: 2, name: 'ພະນັກງານຕ້ອນຮັບ' },
-          { id: 3, name: 'ພະນັກງານທໍາຄວາມສະອາດ' },
-          { id: 4, name: 'ພະນັກງານຄົວ' },
-          { id: 5, name: 'ພະນັກງານຮັກສາຄວາມປອດໄພ' }
-        ];
-      }
-    },
-
-    // Load provinces
-    async loadProvinces() {
-      try {
-        const response = await axios.get('http://localhost:3000/api/provinces');
-        this.provinces = response.data.data || [];
-      } catch (error) {
-        console.error('Error loading provinces:', error);
-        // Provide fallback data when server is not available
-        this.provinces = [
-          { id: 1, name: 'ວຽງຈັນ' },
-          { id: 2, name: 'ຫຼວງພະບາງ' },
-          { id: 3, name: 'ຄໍາມ່ວນ' },
-          { id: 4, name: 'ບໍລິຄໍາໄຊ' },
-          { id: 5, name: 'ສາລະວັນ' },
-          { id: 6, name: 'ຊ້າມະເພືອ' },
-          { id: 7, name: 'ອັດຕະປື' },
-          { id: 8, name: 'ອະເຕຳໃຕ້' },
-          { id: 9, name: 'ບໍ່ແກ້ວ' },
-          { id: 10, name: 'ຫົວພັນ' },
-          { id: 11, name: 'ຜົ້ງສາລີ' },
-          { id: 12, name: 'ວຽງຈັນ (ແຂວງ)' },
-          { id: 13, name: 'ໄຊຍະບູລີ' },
-          { id: 14, name: 'ອຸດົມໄຊ' },
-          { id: 15, name: 'ຫຼວງນ້ໍາທາ' },
-          { id: 16, name: 'ຊຽງຂວາງ' },
-          { id: 17, name: 'ສະຫວັນນະເຂດ' }
-        ];
-        this.showMessage('ໃຊ້ຂໍ້ມູນແຂວງສໍາຮອງ (ເຊີເວີຢຸດການເຮັດວຽກ)', 'error');
-      }
-    },
-
-    // Load districts by province
-    async loadDistricts(provinceId) {
-      try {
-        const response = await axios.get(`http://localhost:3000/api/districts/${provinceId}`);
-        this.districts = response.data.data || [];
-      } catch (error) {
-        console.error('Error loading districts:', error);
-        // Provide fallback data based on province
-        this.districts = this.getFallbackDistricts(provinceId);
-      }
-    },
-
-    // Load villages by district
-    async loadVillages(districtId) {
-      try {
-        const response = await axios.get(`http://localhost:3000/api/villages/${districtId}`);
-        this.villages = response.data.data || [];
-      } catch (error) {
-        console.error('Error loading villages:', error);
-        // Provide fallback data based on district
-        this.villages = this.getFallbackVillages(districtId);
-      }
-    },
-
-    // Get fallback districts when server is unavailable
-    getFallbackDistricts(provinceId) {
-      const districtMap = {
-        1: [ // ວຽງຈັນ
-          { id: 1, name: 'ເມືອງຈັນທະບູລີ' },
-          { id: 2, name: 'ເມືອງຫາດໄຊຟອງ' },
-          { id: 3, name: 'ເມືອງໄຊເສດຖາ' },
-          { id: 4, name: 'ເມືອງສີສັດຕະນາກ' },
-          { id: 5, name: 'ເມືອງສີໂຄດຕະບອງ' }
-        ],
-        2: [ // ຫຼວງພະບາງ
-          { id: 6, name: 'ເມືອງຫຼວງພະບາງ' },
-          { id: 7, name: 'ເມືອງຊຽງນະເຄືອ' },
-          { id: 8, name: 'ເມືອງນ້ໍາບາກ' },
-          { id: 9, name: 'ເມືອງປາກແຊງ' }
-        ],
-        3: [ // ຄໍາມ່ວນ
-          { id: 10, name: 'ເມືອງຄໍາມ່ວນ' },
-          { id: 11, name: 'ເມືອງຕ່າແອງ' },
-          { id: 12, name: 'ເມືອງນາກາ' }
-        ]
-      };
-      return districtMap[provinceId] || [
-        { id: 99, name: 'ເມືອງອື່ນໆ' }
-      ];
-    },
-
-    // Get fallback villages when server is unavailable
-    getFallbackVillages(districtId) {
-      const villageMap = {
-        1: [ // ຈັນທະບູລີ
-          { id: 1, name: 'ບ້ານວັດຈັນ' },
-          { id: 2, name: 'ບ້ານສີມືງ' },
-          { id: 3, name: 'ບ້ານນາງມັງ' }
-        ],
-        2: [ // ຫາດໄຊຟອງ
-          { id: 4, name: 'ບ້ານໂຫາດໄຊຟອງ' },
-          { id: 5, name: 'ບ້ານດອນດື່ງ' }
-        ],
-        6: [ // ຫຼວງພະບາງ
-          { id: 6, name: 'ບ້ານວາດໃໝ່' },
-          { id: 7, name: 'ບ້ານພອນຄໍາ' },
-          { id: 8, name: 'ບ້ານເຊັ່ງຍາງ' }
-        ]
-      };
-      return villageMap[districtId] || [
-        { id: 99, name: 'ບ້ານອື່ນໆ' }
-      ];
-    },
-
-    // Handle province change
-    async onProvinceChange() {
-      this.form.District_id = '';
-      this.form.Village_id = '';
-      this.districts = [];
-      this.villages = [];
-      
-      if (this.form.Province_id) {
-        await this.loadDistricts(this.form.Province_id);
-      }
-    },
-
-    // Handle district change
-    async onDistrictChange() {
-      this.form.Village_id = '';
-      this.villages = [];
-      
-      if (this.form.District_id) {
-        await this.loadVillages(this.form.District_id);
-      }
-    },
-
-    // Get location display text for details view
-    getLocationDisplayText(staff) {
-      if (!staff) return '-';
-      
-      // If we have manual input location text, use it
-      if (staff.location_text) {
-        return staff.location_text;
-      }
-      
-      // Otherwise try to find location names from loaded data
-      const province = this.provinces.find(p => p.id === staff.Province_id);
-      const district = this.districts.find(d => d.id === staff.District_id);
-      const village = this.villages.find(v => v.id === staff.Village_id);
-      
-      const parts = [];
-      if (village) parts.push(`ບ້ານ${village.name}`);
-      else if (staff.Village_id && staff.Village_id !== 999) parts.push(`ບ້ານ ID: ${staff.Village_id}`);
-      
-      if (district) parts.push(`ເມືອງ${district.name}`);
-      else if (staff.District_id && staff.District_id !== 999) parts.push(`ເມືອງ ID: ${staff.District_id}`);
-      
-      if (province) parts.push(`ແຂວງ${province.name}`);
-      else if (staff.Province_id && staff.Province_id !== 999) parts.push(`ແຂວງ ID: ${staff.Province_id}`);
-      
-      return parts.length > 0 ? parts.join(', ') : '-';
-    },
-
-    // Open add modal
     openAddModal() {
-      this.isEditing = false;
       this.resetForm();
       this.showModal = true;
     },
-
-    // Edit staff
-    async editStaff(staff) {
+    closeModal() {
+      this.showModal = false;
+      this.isEditing = false;
+    },
+    editStaff(staff) {
+      this.form = { ...staff };
       this.isEditing = true;
-      
-      // Extract manual location data if exists
-      let province_name = '', district_name = '', village_name = '';
-      if (staff.location_text) {
-        const locationParts = staff.location_text.split(', ');
-        if (locationParts.length >= 3) {
-          village_name = locationParts[0];
-          district_name = locationParts[1];
-          province_name = locationParts[2];
-        }
-      }
-      
-      this.form = {
-        id: staff.e_id,
-        name: staff.name || '',
-        last_name: staff.last_name || '',
-        tel: staff.tel || '',
-        gender: staff.gender || '',
-        birthday: staff.birthday ? staff.birthday.split('T')[0] : '',
-        idcard: staff.idcard || '',
-        Village_id: staff.Village_id || 1,
-        District_id: staff.District_id || 1,
-        Province_id: staff.Province_id || 1,
-        Village_name: village_name,
-        District_name: district_name,
-        Province_name: province_name
-      };
-      
       this.showModal = true;
     },
-
-    // View staff details
-    viewStaffDetails(staff) {
-      this.selectedStaff = staff;
-      this.showDetailsModal = true;
-    },
-
-    // Save staff (add or edit)
     async saveStaff() {
       this.saving = true;
       try {
-        // Validate required fields
-        if (!this.form.name.trim() || !this.form.last_name.trim()) {
-          this.showMessage('ກະລຸນາປ້ອນຊື່ແລະນາມສະກຸນ', 'error');
-          return;
-        }
-        
-        // Validate manual location input (required)
-        if (!this.form.Province_name || !this.form.District_name || !this.form.Village_name) {
-          this.showMessage('ກະລຸນາປ້ອນທີ່ຢູ່ໃຫ້ຄົບຖ້ວນ (ແຂວງ, ເມືອງ, ບ້ານ)', 'error');
-          return;
-        }
-        
-        const data = {
-          name: this.form.name.trim(),
-          last_name: this.form.last_name.trim(),
-          tel: this.form.tel.trim() || null,
-          gender: this.form.gender || null,
-          birthday: this.form.birthday || null,
-          idcard: this.form.idcard.trim() || null,
-        };
-
-        // Add location data from manual input
-        data.Village_id = 999; // Special ID for manual entries
-        data.District_id = 999;
-        data.Province_id = 999;
-        data.location_text = `${this.form.Village_name}, ${this.form.District_name}, ${this.form.Province_name}`;
-
-        // Map form data to match backend expectations (no need for mapping now)
-        const backendData = data;
-
         if (this.isEditing) {
-          // Update existing staff
-          try {
-            await axios.put(`http://localhost:3000/api/staff/${this.form.id}`, backendData);
-            this.showMessage('ແກ້ໄຂຂໍ້ມູນພະນັກງານສໍາເລັດແລ້ວ', 'success');
-          } catch (apiError) {
-            // If server is down, update local data only
-            if (apiError.code === 'ERR_NETWORK' || apiError.message.includes('ERR_CONNECTION_REFUSED')) {
-              this.updateLocalStaff(this.form.id, backendData);
-              this.showMessage('ແກ້ໄຂຂໍ້ມູນພະນັກງານໃນເຄື່ອງສໍາເລັດແລ້ວ (ເຊີເວີຢຸດເຮັດວຽກ)', 'success');
-            } else {
-              throw apiError;
-            }
-          }
+          await axios.put(`http://localhost:3000/api/employees/${this.form.e_id}`, this.form);
+          this.showMessage('ແກ້ໄຂຂໍ້ມູນສຳເລັດ', 'success');
         } else {
-          // Create new staff
-          try {
-            await axios.post('http://localhost:3000/api/staff', backendData);
-            this.showMessage('ເພີ່ມພະນັກງານໃໝ່ສໍາເລັດແລ້ວ', 'success');
-          } catch (apiError) {
-            // If server is down, add to local data only
-            if (apiError.code === 'ERR_NETWORK' || apiError.message.includes('ERR_CONNECTION_REFUSED')) {
-              this.addLocalStaff(backendData);
-              this.showMessage('ເພີ່ມພະນັກງານໃໝ່ໃນເຄື່ອງສໍາເລັດແລ້ວ (ເຊີເວີຢຸດເຮັດວຽກ)', 'success');
-            } else {
-              throw apiError;
-            }
-          }
+          await axios.post('http://localhost:3000/api/employees', this.form);
+          this.showMessage('ເພີ່ມຂໍ້ມູນສຳເລັດ', 'success');
         }
-
+        this.fetchStaff();
         this.closeModal();
-        this.loadStaff();
-      } catch (error) {
-        console.error('Error saving staff:', error);
-        const errorMessage = error.response?.data?.message || error.message || 'ເກີດຄວາມຜິດພາດທີ່ບໍ່ຄາດຄິດ';
-        this.showMessage('ເກີດຄວາມຜິດພາດໃນການບັນທຶກ: ' + errorMessage, 'error');
+      } catch (err) {
+        this.showMessage('ຂໍ້ຜິດພາດໃນການບັນທຶກ', 'error');
       } finally {
         this.saving = false;
       }
     },
-
-    // Delete staff
     async deleteStaff(id) {
-      const staff = this.staff.find(s => s.e_id === id);
-      const confirmMessage = `ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການລຶບພະນັກງານ "${staff?.name} ${staff?.last_name}"?`;
-
-      if (!confirm(confirmMessage)) {
-        return;
-      }
-
+      if (!confirm('ທ່ານແນ່ໃຈບໍ່ວ່າຈະລຶບ?')) return;
       try {
-        await axios.delete(`http://localhost:3000/api/staff/${id}`);
-        this.showMessage('ລຶບພະນັກງານສໍາເລັດແລ້ວ', 'success');
-        this.loadStaff();
-      } catch (error) {
-        console.error('Error deleting staff:', error);
-        const errorMessage = error.response?.data?.message || error.message;
-        this.showMessage('ເກີດຄວາມຜິດພາດໃນການລຶບ: ' + errorMessage, 'error');
+        await axios.delete(`http://localhost:3000/api/employees/${id}`);
+        this.fetchStaff();
+        this.showMessage('ລຶບສຳເລັດ', 'success');
+      } catch (err) {
+        this.showMessage('ລຶບບໍ່ສຳເລັດ', 'error');
       }
     },
-
-    // Close modal
-    closeModal() {
-      this.showModal = false;
-      this.resetForm();
+    viewStaffDetails(staff) {
+      this.selectedStaff = staff;
+      this.showDetailsModal = true;
     },
-
-    // Close details modal
     closeDetailsModal() {
       this.showDetailsModal = false;
       this.selectedStaff = null;
     },
-
-    // Reset form
+    getGenderDisplay(gender) {
+      if (gender === 'Male') return 'ຊາຍ';
+      if (gender === 'Female') return 'ຍິງ';
+      if (gender === 'Other') return 'ອື່ນໆ';
+      return 'ບໍ່ລະບຸ';
+    },
+    formatDate(date) {
+      if (!date) return '-';
+      return new Date(date).toLocaleDateString('en-GB');
+    },
     resetForm() {
       this.form = {
-        id: null,
         name: '',
         last_name: '',
         tel: '',
         gender: '',
         birthday: '',
         idcard: '',
-        Village_id: '',
-        District_id: '',
-        Province_id: '',
-        Village_name: '',
+        District_id: 1,
+        Province_id: 1,
+        village_id: 1,
+        role: '',
+        Province_name: '',
         District_name: '',
-        Province_name: ''
+        Village_name: ''
       };
-      // Clear location dropdowns
-      this.districts = [];
-      this.villages = [];
     },
-
-    // Get gender display text
-    getGenderDisplay(gender) {
-      if (!gender) return 'ບໍ່ລະບຸ';
-      
-      const genderMap = {
-        'Male': 'ຊາຍ',
-        'Female': 'ຍິງ',
-        'Other': 'ອື່ນໆ'
-      };
-      
-      return genderMap[gender] || gender;
-    },
-
-    // Format salary
-    formatSalary(salary) {
-      if (!salary) return '-';
-      return new Intl.NumberFormat('lo-LA').format(salary) + ' ກີບ';
-    },
-
-    // Format date
-    formatDate(date) {
-      if (!date) return '-';
-      return new Date(date).toLocaleDateString('lo-LA');
-    },
-
-    // Show message
     showMessage(text, type = 'success') {
-      this.message = { show: true, text, type };
+      this.message = {
+        show: true,
+        text,
+        type
+      };
       setTimeout(() => {
         this.message.show = false;
-      }, 5000);
+      }, 3000);
     },
-
-    // Add staff to local storage when server is down
-    addLocalStaff(staffData) {
-      const newStaff = {
-        ...staffData,
-        e_id: Date.now(), // Use timestamp as temporary ID
-        isLocal: true // Mark as local data
-      };
-      this.staff.push(newStaff);
-      this.saveToLocalStorage();
-    },
-
-    // Update local staff data when server is down
-    updateLocalStaff(staffId, staffData) {
-      const index = this.staff.findIndex(s => s.e_id === staffId);
-      if (index !== -1) {
-        this.staff[index] = { ...this.staff[index], ...staffData };
-        this.saveToLocalStorage();
+    getLocationDisplayText(staff) {
+      if (staff.Province_id || staff.District_id || staff.village_id) {
+        return `ແຂວງ ID: ${staff.Province_id || '-'}, ເມືອງ ID: ${staff.District_id || '-'}, ບ້ານ ID: ${staff.village_id || '-'}`;
       }
-    },
-
-    // Save data to local storage
-    saveToLocalStorage() {
-      const localStaff = this.staff.filter(s => s.isLocal);
-      localStorage.setItem('hotel_staff_offline', JSON.stringify(localStaff));
-    },
-
-    // Load data from local storage
-    loadFromLocalStorage() {
-      const localData = localStorage.getItem('hotel_staff_offline');
-      if (localData) {
-        const localStaff = JSON.parse(localData);
-        this.staff = [...this.staff, ...localStaff];
-      }
+      return '-';
     }
   }
-}
+};
 </script>
+
 
 <style scoped>
 .staff-management {

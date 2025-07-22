@@ -1,7 +1,6 @@
 <!-- src/views/admin/RoomTypeManagement.vue -->
 <template>
   <div class="room-type-management">
-    <!-- Page Header -->
     <div class="page-header">
       <h2>ຈັດການປະເພດຫ້ອງ</h2>
       <button class="btn btn-primary" @click="openAddModal">
@@ -10,21 +9,17 @@
       </button>
     </div>
 
-    <!-- Loading State -->
     <div v-if="loading" class="loading-container">
       <div class="loading-spinner"></div>
       <p>ກໍາລັງໂຫຼດຂໍ້ມູນ...</p>
     </div>
 
-    <!-- Room Types Table -->
     <div v-else class="table-container">
       <table class="room-types-table">
         <thead>
           <tr>
             <th class="room-id">ID</th>
             <th class="room-name">ຊື່ປະເພດຫ້ອງ</th>
-            <th class="room-count">ຈໍານວນຫ້ອງ</th>
-            <th class="room-status">ສະຖານະ</th>
             <th class="room-actions">ກິດຈະກຳ</th>
           </tr>
         </thead>
@@ -34,14 +29,6 @@
             <td class="room-name">
               <div class="name-display">
                 <div class="main-name">{{ roomType.name }}</div>
-              </div>
-            </td>
-            <td class="room-count">
-              <div class="count-badge">{{ getRoomCount(roomType.id) }}</div>
-            </td>
-            <td class="room-status">
-              <div class="status-indicator active">
-                ເປີດໃຊ້ງານ
               </div>
             </td>
             <td class="room-actions">
@@ -59,7 +46,6 @@
       </table>
     </div>
 
-    <!-- Empty State -->
     <div v-if="!loading && roomTypes.length === 0" class="empty-state">
       <div class="empty-icon">🏢</div>
       <h3>ບໍ່ມີປະເພດຫ້ອງ</h3>
@@ -69,7 +55,6 @@
       </button>
     </div>
 
-    <!-- Add/Edit Modal -->
     <div v-if="showModal" class="modal-overlay" @click="closeModal">
       <div class="modal" @click.stop>
         <div class="modal-header">
@@ -103,184 +88,116 @@
       </div>
     </div>
 
-    <!-- Success/Error Messages -->
     <div v-if="message.show" class="message" :class="message.type">
       {{ message.text }}
     </div>
   </div>
 </template>
 
+// src/views/admin/RoomTypeManagement.vue
 <script>
-import axios from 'axios'
+import axios from 'axios';
 
 export default {
-  name: 'RoomTypeManagement',
   data() {
     return {
-      loading: false,
-      saving: false,
-      showModal: false,
-      isEditing: false,
       roomTypes: [],
-      roomCounts: {},
       form: {
         id: null,
         name: ''
       },
+      loading: false,
+      showModal: false,
+      isEditing: false,
+      saving: false,
       message: {
         show: false,
-        type: 'success',
-        text: ''
+        text: '',
+        type: ''
       }
-    }
+    };
   },
   mounted() {
-    this.loadRoomTypes()
-    this.loadRoomCounts()
+    this.fetchRoomTypes();
   },
   methods: {
-    // Load room types from database
-    async loadRoomTypes() {
-      this.loading = true
+    async fetchRoomTypes() {
+      this.loading = true;
       try {
-        // ใช้ axios ตรงๆ เพื่อเรียก API
-        const response = await axios.get('http://localhost:3000/api/room-types')
-        this.roomTypes = response.data || []
-        console.log('Room types loaded:', this.roomTypes)
-      } catch (error) {
-        console.error('Error loading room types:', error)
-        this.showMessage('ບໍ່ສາມາດໂຫຼດຂໍ້ມູນປະເພດຫ້ອງໄດ້: ' + (error.response?.data?.message || error.message), 'error')
+        const res = await axios.get('http://localhost:3000/api/room-types');
+        this.roomTypes = res.data.data;
+      } catch (err) {
+        this.showMessage('ການໂຫຼດຂໍ້ມູນລົ້ມເຫຼວ', 'error');
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     },
-
-    // Load room counts for each room type
-    async loadRoomCounts() {
-      try {
-        const response = await axios.get('http://localhost:3000/api/room-counts-by-type')
-        this.roomCounts = response.data || {}
-        console.log('Room counts loaded:', this.roomCounts)
-      } catch (error) {
-        console.error('Error loading room counts:', error)
-        // ถ้าไม่มี API สำหรับนับห้อง ให้ใช้ข้อมูลจำลอง
-        this.roomCounts = {
-          1: 3, // Standard Room
-          2: 4, // Deluxe Room  
-          3: 2, // Suite
-          4: 1  // Family Room
-        }
-      }
-    },
-
-    // Get room count for specific room type
-    getRoomCount(roomTypeId) {
-      return this.roomCounts[roomTypeId] || 0
-    },
-
-    // Open add modal
     openAddModal() {
-      this.isEditing = false
-      this.resetForm()
-      this.showModal = true
+      this.resetForm();
+      this.isEditing = false;
+      this.showModal = true;
     },
-
-    // Edit room type
-    editRoomType(roomType) {
-      this.isEditing = true
-      this.form = {
-        id: roomType.id,
-        name: roomType.name
-      }
-      this.showModal = true
-    },
-
-    // Save room type (add or edit)
-    async saveRoomType() {
-      this.saving = true
-      try {
-        const data = {
-          name: this.form.name.trim()
-        }
-
-        if (this.isEditing) {
-          // Update existing room type
-          await axios.put(`http://localhost:3000/api/room-types/${this.form.id}`, data)
-          this.showMessage('ແກ້ໄຂປະເພດຫ້ອງສໍາເລັດແລ້ວ', 'success')
-        } else {
-          // Create new room type
-          await axios.post('http://localhost:3000/api/room-types', data)
-          this.showMessage('ເພີ່ມປະເພດຫ້ອງໃໝ່ສໍາເລັດແລ້ວ', 'success')
-        }
-
-        this.closeModal()
-        this.loadRoomTypes()
-        this.loadRoomCounts()
-      } catch (error) {
-        console.error('Error saving room type:', error)
-        const errorMessage = error.response?.data?.message || error.message || 'ເກີດຄວາມຜິດພາດທີ່ບໍ່ຄາດຄິດ'
-        this.showMessage('ເກີດຄວາມຜິດພາດໃນການບັນທຶກ: ' + errorMessage, 'error')
-      } finally {
-        this.saving = false
-      }
-    },
-
-    // Delete room type
-    async deleteRoomType(id) {
-      const roomType = this.roomTypes.find(rt => rt.id === id)
-      const roomCount = this.getRoomCount(id)
-      
-      let confirmMessage = `ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການລຶບປະເພດຫ້ອງ "${roomType?.name}"?`
-      
-      if (roomCount > 0) {
-        confirmMessage += `\n\nປະເພດຫ້ອງນີ້ມີຫ້ອງຈໍານວນ ${roomCount} ຫ້ອງ ການລຶບອາດສົ່ງຜົນກະທົບ!`
-      }
-
-      if (!confirm(confirmMessage)) {
-        return
-      }
-
-      try {
-        await axios.delete(`http://localhost:3000/api/room-types/${id}`)
-        this.showMessage('ລຶບປະເພດຫ້ອງສໍາເລັດແລ້ວ', 'success')
-        this.loadRoomTypes()
-        this.loadRoomCounts()
-      } catch (error) {
-        console.error('Error deleting room type:', error)
-        const errorMessage = error.response?.data?.message || error.message
-        
-        if (error.response?.status === 400) {
-          this.showMessage('ບໍ່ສາມາດລຶບປະເພດຫ້ອງນີ້ໄດ້ ເນື່ອງຈາກມີຫ້ອງທີ່ໃຊ້ປະເພດນີ້ຢູ່', 'error')
-        } else {
-          this.showMessage('ເກີດຄວາມຜິດພາດໃນການລຶບ: ' + errorMessage, 'error')
-        }
-      }
-    },
-
-    // Close modal
     closeModal() {
-      this.showModal = false
-      this.resetForm()
+      this.showModal = false;
+      this.resetForm();
     },
-
-    // Reset form
+    editRoomType(roomType) {
+      this.form = { ...roomType };
+      this.isEditing = true;
+      this.showModal = true;
+    },
+    async saveRoomType() {
+      this.saving = true;
+      try {
+        if (this.isEditing) {
+          await axios.put(`http://localhost:3000/api/room-types/${this.form.id}`, {
+            name: this.form.name
+          });
+          this.showMessage('ແກ້ໄຂສຳເລັດ', 'success');
+        } else {
+          await axios.post('http://localhost:3000/api/room-types', {
+            name: this.form.name
+          });
+          this.showMessage('ເພີ່ມສຳເລັດ', 'success');
+        }
+        this.fetchRoomTypes();
+        this.closeModal();
+      } catch (err) {
+        this.showMessage('ການບັນທຶກຜິດພາດ', 'error');
+      } finally {
+        this.saving = false;
+      }
+    },
+    async deleteRoomType(id) {
+      if (!confirm('ຢືນຢັນການລຶບ?')) return;
+      try {
+        await axios.delete(`http://localhost:3000/api/room-types/${id}`);
+        this.showMessage('ລຶບສຳເລັດ', 'success');
+        this.fetchRoomTypes();
+      } catch (err) {
+        this.showMessage('ລຶບບໍ່ສຳເລັດ', 'error');
+      }
+    },
     resetForm() {
       this.form = {
         id: null,
         name: ''
-      }
+      };
     },
-
-    // Show message
     showMessage(text, type = 'success') {
-      this.message = { show: true, text, type }
+      this.message = {
+        show: true,
+        text,
+        type
+      };
       setTimeout(() => {
-        this.message.show = false
-      }, 5000)
+        this.message.show = false;
+      }, 3000);
     }
   }
-}
+};
 </script>
+
 
 <style scoped>
 .room-type-management {

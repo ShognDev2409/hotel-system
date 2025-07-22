@@ -15,7 +15,7 @@
         <input 
           type="text" 
           v-model="searchQuery" 
-          placeholder="ຄົ້ນຫາເລກຫ້ອງ..."
+          placeholder="ຄົ້ນຫາຊື່ຫ້ອງ..."
           class="search-input"
         >
       </div>
@@ -28,8 +28,8 @@
         </select>
         <select v-model="typeFilter" class="filter-select">
           <option value="">ທຸກປະເພດ</option>
-          <option v-for="type in roomTypes" :key="type" :value="type">
-            {{ type }}
+          <option v-for="type in roomTypes" :key="type.id" :value="type.id">
+            {{ type.name }}
           </option>
         </select>
       </div>
@@ -67,9 +67,8 @@
         <table class="rooms-table">
           <thead>
             <tr>
-              <th>ເລກຫ້ອງ</th>
+              <th>ຊື່ຫ້ອງ</th>
               <th>ປະເພດຫ້ອງ</th>
-              <th>ຊັ້ນ</th>
               <th>ຄວາມຈຸ</th>
               <th>ລາຄາ</th>
               <th>ສະຖານະ</th>
@@ -78,10 +77,9 @@
           </thead>
           <tbody>
             <tr v-for="room in filteredRooms" :key="room.id">
-              <td class="room-number">{{ room.roomNumber }}</td>
-              <td>{{ room.type }}</td>
-              <td>{{ room.floor }}</td>
-              <td>{{ room.capacity }} ຄົນ</td>
+              <td class="room-number">{{ room.name }}</td>
+              <td>{{ room.roomTypeName }}</td>
+              <td>{{ room.maxGuests }} ຄົນ</td>
               <td class="price">{{ formatPrice(room.price) }}</td>
               <td>
                 <span class="status-badge" :class="room.status">
@@ -91,6 +89,13 @@
               <td class="actions">
                 <button class="btn btn-sm btn-outline" @click="editRoom(room)">
                   ແກ້ໄຂ
+                </button>
+                <button 
+                  class="btn btn-sm btn-info" 
+                  @click="checkAvailability(room.id)"
+                  :disabled="checkingAvailability"
+                >
+                  ກວດສອບສະຖານະ
                 </button>
                 <button class="btn btn-sm btn-danger" @click="deleteRoom(room.id)">
                   ລຶບ
@@ -118,20 +123,20 @@
           <form @submit.prevent="saveRoom">
             <div class="form-row">
               <div class="form-group">
-                <label>ເລກຫ້ອງ *</label>
+                <label>ຊື່ຫ້ອງ *</label>
                 <input 
                   type="text" 
-                  v-model="roomForm.roomNumber" 
+                  v-model="roomForm.name" 
                   required 
                   class="form-input"
-                  placeholder="ເຊັ່ນ: 101"
+                  placeholder="ເຊັ່ນ: Room 101"
                 >
               </div>
               <div class="form-group">
                 <label>ປະເພດຫ້ອງ *</label>
-                <select v-model="roomForm.type" required class="form-input">
+                <select v-model="roomForm.typeId" required class="form-input">
                   <option value="">ເລືອກປະເພດຫ້ອງ</option>
-                  <option v-for="type in availableRoomTypes" :key="type.id" :value="type.name">
+                  <option v-for="type in roomTypes" :key="type.id" :value="type.id">
                     {{ type.name }}
                   </option>
                 </select>
@@ -159,6 +164,20 @@
                 </select>
               </div>
             </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>ຄວາມຈຸ *</label>
+                <input 
+                  type="number" 
+                  v-model="roomForm.maxGuests" 
+                  required 
+                  class="form-input"
+                  min="1"
+                  step="1"
+                >
+              </div>
+            </div>
             
             <div class="form-actions">
               <button type="button" class="btn btn-outline" @click="closeModals">
@@ -172,185 +191,284 @@
         </div>
       </div>
     </div>
+
+    <!-- Availability Check Modal -->
+    <div v-if="showAvailabilityModal" class="modal-overlay" @click="showAvailabilityModal = false">
+      <div class="modal" @click.stop>
+        <div class="modal-header">
+          <h3>ສະຖານະຫ້ອງ</h3>
+          <button class="close-btn" @click="showAvailabilityModal = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="availability-info">
+            <p><strong>ຫ້ອງເລກ:</strong> {{ availabilityInfo.roomId }}</p>
+            <p><strong>ສະຖານະ:</strong> 
+              <span :class="availabilityInfo.available ? 'text-success' : 'text-danger'">
+                {{ availabilityInfo.available ? 'ວ່າງ' : 'ບໍ່ວ່າງ' }}
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import roomService from '@/services/roomService';
+import axios from 'axios'
 
 export default {
   name: 'RoomManagement',
   data() {
     return {
-      loading: true,
+      // State management
+      loading: false,
       saving: false,
+      checkingAvailability: false,
+      
+      // Modal controls
+      showAddModal: false,
+      showEditModal: false,
+      showAvailabilityModal: false,
+      
+      // Data
+      rooms: [],
+      roomTypes: [],
+      
+      // Filters
       searchQuery: '',
       statusFilter: '',
       typeFilter: '',
-      showAddModal: false,
-      showEditModal: false,
+      
+      // Form data
       roomForm: {
         id: null,
-        roomNumber: '',
-        type: '',
+        name: '',
+        typeId: '',
         price: '',
-        status: 'available'
+        status: 'available',
+        maxGuests: 1
       },
-      rooms: [],
-      roomStats: {},
-      availableRoomTypes: []
+      
+      // Availability info
+      availabilityInfo: {
+        roomId: '',
+        available: false
+      }
     }
   },
+  
   computed: {
     filteredRooms() {
-      let filtered = this.rooms;
+      let filtered = [...this.rooms]
       
+      // Search filter
       if (this.searchQuery) {
         filtered = filtered.filter(room => 
-          room.roomNumber.toLowerCase().includes(this.searchQuery.toLowerCase())
-        );
+          room.name.toLowerCase().includes(this.searchQuery.toLowerCase())
+        )
       }
       
+      // Status filter
       if (this.statusFilter) {
-        filtered = filtered.filter(room => room.status === this.statusFilter);
+        filtered = filtered.filter(room => room.status === this.statusFilter)
       }
       
+      // Type filter
       if (this.typeFilter) {
-        filtered = filtered.filter(room => room.type === this.typeFilter);
+        filtered = filtered.filter(room => room.roomType_id === this.typeFilter)
       }
       
-      return filtered;
-    },
-    roomTypes() {
-      return [...new Set(this.rooms.map(room => room.type))];
-    }
-  },
-  async mounted() {
-    await this.fetchRooms();
-    await this.fetchRoomStats();
-    await this.fetchRoomTypes();
-  },
-  methods: {
-    async fetchRooms() {
-      try {
-        this.loading = true;
-        const response = await roomService.getRooms();
-        
-        if (response.success) {
-          this.rooms = response.data;
-        }
-      } catch (error) {
-        console.error('Error fetching rooms:', error);
-        this.$toast.error('ເກີດຂໍ້ຜິດພາດໃນການດຶງຂໍ້ມູນຫ້ອງ');
-      } finally {
-        this.loading = false;
-      }
+      return filtered
     },
     
-    async fetchRoomStats() {
+    roomStats() {
+      const stats = {
+        availableRooms: 0,
+        occupiedRooms: 0,
+        maintenanceRooms: 0,
+        totalRooms: this.rooms.length
+      }
+      
+      this.rooms.forEach(room => {
+        switch (room.status) {
+          case 'available':
+            stats.availableRooms++
+            break
+          case 'occupied':
+            stats.occupiedRooms++
+            break
+          case 'maintenance':
+            stats.maintenanceRooms++
+            break
+        }
+      })
+      
+      return stats
+    }
+  },
+  
+  async mounted() {
+    await this.fetchRooms()
+    await this.fetchRoomTypes()
+  },
+  
+  methods: {
+    // API calls
+    async fetchRooms() {
       try {
-        const response = await roomService.getRoomStats();
-        
-        if (response.success) {
-          this.roomStats = response.data;
+        this.loading = true
+        const response = await axios.get('http://localhost:3000/api/rooms')
+        if (response.data.success) {
+          this.rooms = response.data.data || []
         }
       } catch (error) {
-        console.error('Error fetching room stats:', error);
+        console.error('Error fetching rooms:', error)
+        this.$toast.error('ເກີດຂໍ້ຜິດພາດໃນການໂຫລດຂໍ້ມູນຫ້ອງ')
+      } finally {
+        this.loading = false
       }
     },
     
     async fetchRoomTypes() {
       try {
-        const response = await roomService.getRoomTypes();
+        // You can either create this endpoint or use hardcoded data
+        // const response = await axios.get('/api/room-types')
+        // if (response.data.success) {
+        //   this.roomTypes = response.data.data || []
+        // }
         
-        if (response.success) {
-          this.availableRoomTypes = response.data;
-        }
+        // For now, using hardcoded room types based on your data
+        this.roomTypes = [
+          { id: 1, name: 'Double Room' },
+          { id: 2, name: 'Single Room' },
+          { id: 3, name: 'Suite' },
+          { id: 4, name: 'Deluxe Room' }
+        ]
       } catch (error) {
-        console.error('Error fetching room types:', error);
-      }
-    },
-    
-    formatPrice(price) {
-      return new Intl.NumberFormat('lo-LA').format(price) + ' ກີບ';
-    },
-    
-    getStatusText(status) {
-      const statusMap = {
-        'available': 'ວ່າງ',
-        'occupied': 'ຖືກຈອງ',
-        'maintenance': 'ສ້ອມແປງ'
-      };
-      return statusMap[status] || status;
-    },
-    
-    editRoom(room) {
-      this.roomForm = { ...room };
-      this.showEditModal = true;
-    },
-    
-    async deleteRoom(roomId) {
-      if (confirm('ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການລຶບຫ້ອງນີ້?')) {
-        try {
-          const response = await roomService.deleteRoom(roomId);
-          
-          if (response.success) {
-            this.$toast.success('ລຶບຫ້ອງສໍາເລັດແລ້ວ');
-            await this.fetchRooms();
-            await this.fetchRoomStats();
-          }
-        } catch (error) {
-          console.error('Error deleting room:', error);
-          this.$toast.error(error.response?.data?.message || 'ເກີດຂໍ້ຜິດພາດໃນການລຶບຫ້ອງ');
-        }
+        console.error('Error fetching room types:', error)
+        this.roomTypes = [
+          { id: 1, name: 'Double Room' },
+          { id: 2, name: 'Single Room' },
+          { id: 3, name: 'Suite' },
+          { id: 4, name: 'Deluxe Room' }
+        ]
       }
     },
     
     async saveRoom() {
       try {
-        this.saving = true;
+        this.saving = true
         
         const roomData = {
-          roomNumber: this.roomForm.roomNumber,
-          type: this.roomForm.type,
-          price: parseInt(this.roomForm.price),
-          status: this.roomForm.status
-        };
-        
-        let response;
-        if (this.showAddModal) {
-          // Add new room
-          response = await roomService.createRoom(roomData);
-          this.$toast.success('ເພີ່ມຫ້ອງໃໝ່ສໍາເລັດແລ້ວ');
-        } else {
-          // Edit existing room
-          response = await roomService.updateRoom(this.roomForm.id, roomData);
-          this.$toast.success('ແກ້ໄຂຂໍ້ມູນຫ້ອງສໍາເລັດແລ້ວ');
+          name: this.roomForm.name,
+          typeId: parseInt(this.roomForm.typeId),
+          price: parseFloat(this.roomForm.price),
+          status: this.roomForm.status,
+          maxGuests: parseInt(this.roomForm.maxGuests)
         }
         
-        if (response.success) {
-          await this.fetchRooms();
-          await this.fetchRoomStats();
-          this.closeModals();
+        let response
+        
+        if (this.showAddModal) {
+          // Create new room
+          response = await axios.post('http://localhost:3000/api/rooms', roomData)
+        } else {
+          // Update existing room
+          response = await axios.put(`/api/rooms/${this.roomForm.id}`, roomData)
+        }
+        
+        if (response.data.success) {
+          this.$toast.success(this.showAddModal ? 'ເພີ່ມຫ້ອງສຳເລັດ' : 'ແກ້ໄຂຂໍ້ມູນສຳເລັດ')
+          await this.fetchRooms()
+          this.closeModals()
         }
       } catch (error) {
-        console.error('Error saving room:', error);
-        this.$toast.error(error.response?.data?.message || 'ເກີດຂໍ້ຜິດພາດໃນການບັນທຶກຂໍ້ມູນ');
+        console.error('Error saving room:', error)
+        this.$toast.error('ເກີດຂໍ້ຜິດພາດໃນການບັນທຶກຂໍ້ມູນ')
       } finally {
-        this.saving = false;
+        this.saving = false
       }
     },
     
+    async deleteRoom(roomId) {
+      if (!confirm('ທ່ານແນ່ໃຈຫຼືບໍ່ວ່າຕ້ອງການລຶບຫ້ອງນີ້?')) {
+        return
+      }
+      
+      try {
+        const response = await axios.delete(`http://localhost:3000/api/rooms/${roomId}`)
+        if (response.data.success) {
+          this.$toast.success('ລຶບຫ້ອງສຳເລັດ')
+          await this.fetchRooms()
+        }
+      } catch (error) {
+        console.error('Error deleting room:', error)
+        this.$toast.error('ເກີດຂໍ້ຜິດພາດໃນການລຶບຫ້ອງ')
+      }
+    },
+    
+    async checkAvailability(roomId) {
+      try {
+        this.checkingAvailability = true
+        const response = await axios.get(`http://localhost:3000/api/rooms/${roomId}/available`)
+        
+        if (response.data.success) {
+          this.availabilityInfo = {
+            roomId: response.data.roomId,
+            available: response.data.available
+          }
+          this.showAvailabilityModal = true
+        }
+      } catch (error) {
+        console.error('Error checking availability:', error)
+        this.$toast.error('ເກີດຂໍ້ຜິດພາດໃນການກວດສອບສະຖານະ')
+      } finally {
+        this.checkingAvailability = false
+      }
+    },
+    
+    // UI methods
+    editRoom(room) {
+      this.roomForm = {
+        id: room.id,
+        name: room.name,
+        typeId: room.roomType_id,
+        price: room.price,
+        status: room.status,
+        maxGuests: room.maxGuests
+      }
+      this.showEditModal = true
+    },
+    
     closeModals() {
-      this.showAddModal = false;
-      this.showEditModal = false;
+      this.showAddModal = false
+      this.showEditModal = false
       this.roomForm = {
         id: null,
-        roomNumber: '',
-        type: '',
+        name: '',
+        typeId: '',
         price: '',
-        status: 'available'
-      };
+        status: 'available',
+        maxGuests: 1
+      }
+    },
+    
+    // Utility methods
+    formatPrice(price) {
+      return new Intl.NumberFormat('lo-LA', {
+        style: 'currency',
+        currency: 'LAK'
+      }).format(price)
+    },
+    
+    getStatusText(status) {
+      const statusMap = {
+        available: 'ວ່າງ',
+        occupied: 'ຖືກຈອງ',
+        maintenance: 'ສ້ອມແປງ'
+      }
+      return statusMap[status] || status
     }
   }
 }

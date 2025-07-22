@@ -6,6 +6,7 @@ const roomController = require('./src/controllers/roomController');
 const detailController = require('./src/controllers/roomDetailController');
 const customerController = require('./src/controllers/customerController');
 const bookingController = require('./src/controllers/bookController');
+const employeeController = require('./src/controllers/employeeController');
 
 const app = express();
 app.use(cors());
@@ -36,9 +37,12 @@ app.get('/api/rooms/:id/available', roomController.checkAvailable);
 // auth routes
 app.post('/api/register', customerController.register);
 app.post('/api/login', customerController.login);
-app.get('/api/users', customerController.getCustomerList);
+app.get('/api/customerlist', customerController.getCustomerList);
 
-app.get('/api/customer/:id', customerController.getCustomerById) 
+app.get('/api/customer/:id', customerController.getCustomerById);
+app.put('/api/customer/:id', customerController.updateCustomerById);
+app.delete('/api/customer/:id', customerController.deleteCustomerById);
+
 
 
 // room detail 
@@ -71,7 +75,12 @@ app.get('/api/booking/report', bookingController.getBookingReport);
 // income page with query param
 app.get('/api/income/report', bookingController.getDashboardSummary);  
 
-
+// employee
+app.get('/api/employees', employeeController.getEmployeeList);
+app.get('/api/employees/:id', employeeController.getEmployeeById);
+app.post('/api/employees', employeeController.createEmployee);
+app.put('/api/employees/:id', employeeController.updateEmployee);
+app.delete('/api/employees/:id', employeeController.deleteEmployee);
 // 404
 app.all('*', (req, res) => {
   res.status(404).json({
