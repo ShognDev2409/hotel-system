@@ -122,169 +122,168 @@
     </v-container>
   </div>
 </template>
-
 <script>
-import api from '@/services/api'
-
 export default {
-  name: 'CustomerLogin',
-  
+  name: 'LoginPage',
   data() {
     return {
       valid: false,
-      showPassword: false,
       loading: false,
+      showPassword: false,
       errorMessage: '',
       successMessage: '',
+      
       form: {
         email: '',
         password: ''
       },
+      
       emailRules: [
-        v => !!v || 'ກະລຸນາປ້ອນອີເມວ',
-        v => /.+@.+\..+/.test(v) || 'ຮູບແບບອີເມວບໍ່ຖືກຕ້ອງ'
+        v => !!v || 'ອີເມວແມ່ນຈຳເປັນ',
+        v => /.+@.+\..+/.test(v) || 'ອີເມວບໍ່ຖືກຕ້ອງ'
       ],
+      
       passwordRules: [
-        v => !!v || 'ກະລຸນາປ້ອນລະຫັດຜ່ານ'
+        v => !!v || 'ລະຫັດຜ່ານແມ່ນຈຳເປັນ',
+        v => (v && v.length >= 6) || 'ລະຫັດຜ່ານຕ້ອງມີຢ່າງໜ້ອຍ 6 ຕົວອັກສອນ'
       ]
     }
   },
   
   mounted() {
-    // ✅ ตรวจสอบว่ามาจาก Registration หรือไม่
-    if (this.$route.query.registered === 'true') {
-      this.successMessage = 'ສະໝັກສະມາຊິກສຳເລັດ! ກະລຸນາເຂົ້າສູ່ລະບົບ'
-      
-      // ✅ ใส่ email ที่เพิ่งสมัครให้อัตโนมัติ
-      if (this.$route.query.email) {
-        this.form.email = this.$route.query.email
-      }
-      
-      // ✅ Clear success message หลังจาก 5 วินาที
-      setTimeout(() => {
-        this.successMessage = ''
-      }, 5000)
-    }
-
-    // ตรวจสอบว่า user login อยู่แล้วหรือไม่
-    if (api.isAuthenticated()) {
-      console.log('✅ User already logged in, redirecting...')
-      const user = api.getCurrentUser()
-      if (user.userType === 4) {
-        this.$router.push('/customer/dashboard')
-      } else if (user.userType === 1) {
-        this.$router.push('/admin/dashboard')
-      } else {
-        this.$router.push('/')
-      }
-    }
+    this.checkExistingAuth();
   },
   
   methods: {
     async handleLogin() {
-      console.log('🚀 Starting login process...')
+      this.errorMessage = '';
+      this.successMessage = '';
       
       if (!this.$refs.form.validate()) {
-        this.errorMessage = 'ກະລຸນາກວດສອບຂໍ້ມູນທີ່ປ້ອນໃຫ້ຖືກຕ້ອງ'
-        return
+        this.errorMessage = 'ກະລຸນາກວດສອບຂໍ້ມູນທີ່ປ້ອນ';
+        return;
       }
       
-      this.loading = true
-      this.errorMessage = ''
-      this.successMessage = ''
+      this.loading = true;
       
       try {
-        // ✅ Test backend connection
-        console.log('🔄 Testing backend connection...')
-        await api.testConnection()
-        
-        console.log('📋 Login form data:', {
-          email: this.form.email,
-          password: '[HIDDEN]'
-        })
-        
-        // ✅ Send login request
-        const response = await api.login({
-          email: this.form.email,
+        const loginData = {
+          email: this.form.email.trim(),
           password: this.form.password
-        })
+        };
         
-        console.log('✅ Login response:', response.data)
+        console.log('Attempting login for:', loginData.email);
         
-        if (response.data.success) {
-          // ✅ เก็บ Token และ User data
-          localStorage.setItem('token', response.data.token)
-          localStorage.setItem('user', JSON.stringify(response.data.user))
-          
-          this.successMessage = 'ເຂົ້າສູ່ລະບົບສຳເລັດ!'
-          
-          console.log('✅ Login successful!', {
-            userType: response.data.user.userType,
-            userTypeName: response.data.user.userTypeName
-          })
-          
-          // ✅ Redirect ตาม userType
-          setTimeout(() => {
-            // ตรวจสอบว่ามี redirect parameter หรือไม่
-            const redirectTo = this.$route.query.redirect
-            
-            if (redirectTo) {
-              console.log('🔄 Redirecting to requested page:', redirectTo)
-              this.$router.push(redirectTo)
-            } else {
-              // Redirect ตาม userType
-              if (response.data.user.userType === 4) {
-                // Customer
-                console.log('🔄 Redirecting to customer dashboard...')
-                this.$router.push('/customer/dashboard')
-              } else if (response.data.user.userType === 1) {
-                // Admin
-                console.log('🔄 Redirecting to admin dashboard...')
-                this.$router.push('/admin/dashboard')
-              } else if (response.data.user.userType === 2 || response.data.user.userType === 3) {
-                // Manager/Staff
-                console.log('🔄 Redirecting to staff dashboard...')
-                this.$router.push('/staff/dashboard')
-              } else {
-                // Default fallback
-                console.log('🔄 Redirecting to home...')
-                this.$router.push('/')
-              }
-            }
-          }, 1500)
-        }
-      } catch (error) {
-        console.error('❌ Login error:', error)
+        const response = await fetch('http://localhost:3000/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(loginData)
+        });
         
-        if (error.response?.data?.message) {
-          this.errorMessage = this.translateErrorMessage(error.response.data.message)
-        } else if (error.message && error.message.includes('Network Error')) {
-          this.errorMessage = 'ບໍ່ສາມາດເຊື່ອມຕໍ່ກັບເຊີເວີໄດ້'
+        console.log('Response status:', response.status);
+        const responseData = await response.json();
+        console.log('Response data:', responseData);
+        
+        if (response.ok && responseData.token) {
+          this.handleLoginSuccess(responseData);
         } else {
-          this.errorMessage = 'ເຂົ້າສູ່ລະບົບລົ້ມເຫລວ'
+          if (responseData.message) {
+            this.errorMessage = this.translateErrorMessage(responseData.message);
+          } else if (responseData.error) {
+            this.errorMessage = this.translateErrorMessage(responseData.error);
+          } else {
+            this.errorMessage = 'ອີເມວ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ';
+          }
         }
+        
+      } catch (error) {
+        console.error('Login error:', error);
+        
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          this.errorMessage = 'ບໍ່ສາມາດເຊື່ອມຕໍ່ກັບເຊີເວີໄດ້ ກະລຸນາລອງໃໝ່';
+        } else {
+          this.errorMessage = 'ເກີດຂໍ້ຜິດພາດ ກະລຸນາລອງໃໝ່';
+        }
+        
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     },
-
+    
+    handleLoginSuccess(responseData) {
+      // ✅ This is correct!
+      this.$store.dispatch('auth/login', {
+        token: responseData.token,
+        user: responseData.customer
+      });
+      
+      this.successMessage = `ຍິນດີຕ້ອນຮັບ ${responseData.customer.name}!`;
+      
+      console.log('Login successful:', {
+        customerId: responseData.customer.c_id,
+        customerName: responseData.customer.name + ' ' + responseData.customer.last_name,
+        token: responseData.token.substring(0, 20) + '...'
+      });
+      
+      this.resetForm();
+      
+      setTimeout(() => {
+        this.redirectAfterLogin();
+      }, 1500);
+    },
+    
+    redirectAfterLogin() {
+      const redirectTo = this.$route.query.redirect;
+      
+      if (redirectTo) {
+        this.$router.push(redirectTo);
+      } else {
+        // Change '/home' to your actual route
+        this.$router.push('/'); // or '/dashboard' if you have one
+      }
+    },
+    
+    checkExistingAuth() {
+      // ✅ Fixed to use Vuex
+      if (this.$store.getters['auth/isLoggedIn']) {
+        console.log('User already authenticated:', this.$store.getters['auth/userName']);
+        this.$router.push('/');
+      }
+    },
+    
     translateErrorMessage(message) {
       const translations = {
-        'Invalid email or password': 'ອີເມວຫຼືລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ',
+        'Invalid credentials': 'ອີເມວ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ',
         'User not found': 'ບໍ່ພົບຜູ້ໃຊ້ນີ້',
-        'Login failed': 'ເຂົ້າສູ່ລະບົບລົ້ມເຫລວ'
+        'Incorrect password': 'ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ',
+        'Account suspended': 'ບັນຊີຖືກລະງັບການໃຊ້ງານ',
+        'Account not verified': 'ບັນຊີຍັງບໍ່ໄດ້ຢືນຢັນ',
+        'Too many login attempts': 'ພະຍາຍາມເຂົ້າສູ່ລະບົບຫຼາຍເທື່ອເກີນໄປ ກະລຸນາລໍຖ້າ',
+        'Invalid email format': 'ຮູບແບບອີເມວບໍ່ຖືກຕ້ອງ'
+      };
+      
+      return translations[message] || message || 'ອີເມວ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ';
+    },
+    
+    resetForm() {
+      this.form = {
+        email: '',
+        password: ''
+      };
+      
+      if (this.$refs.form) {
+        this.$refs.form.reset();
+        this.$refs.form.resetValidation();
       }
       
-      return translations[message] || message
-    },
-
-    goToRegister() {
-      this.$router.push('/register')
+      this.showPassword = false;
     }
   }
 }
 </script>
-
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;700&display=swap');
 
