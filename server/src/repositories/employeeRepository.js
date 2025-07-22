@@ -11,13 +11,19 @@ const EmployeeRepository = {
     return rows[0];
   },
 
+  async findByEmail(email) {
+    const [rows] = await db.query('SELECT * FROM employee WHERE name = ?', [email]);
+    return rows[0];
+  },
+
   async create(employee) {
     const [result] = await db.query(
       `INSERT INTO employee 
       (name, last_name, gender, birthday, tel, idcard, District_id, Province_id, village_id, role, password) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [employee.name, employee.last_name, employee.gender, employee.birthday, employee.tel,
-       employee.idcard, employee.District_id, employee.Province_id, employee.village_id, employee.role, employee.password]
+       employee.idcard, employee.District_id, employee.Province_id, employee.village_id, 
+       employee.role, employee.password]
     );
     return result.insertId;
   },
@@ -26,10 +32,11 @@ const EmployeeRepository = {
     const [result] = await db.query(
       `UPDATE employee SET 
         name = ?, last_name = ?, gender = ?, birthday = ?, tel = ?, 
-        idcard = ?, District_id = ?, Province_id = ?, village_id = ?, role = ?, password = ?
+        idcard = ?, District_id = ?, Province_id = ?, village_id = ?, role = ?, password = ? 
       WHERE e_id = ?`,
       [employee.name, employee.last_name, employee.gender, employee.birthday, employee.tel,
-       employee.idcard, employee.District_id, employee.Province_, employee.village_id, employee.role, employee.password, id]
+       employee.idcard, employee.District_id, employee.Province_id, employee.village_id, 
+       employee.role, employee.password,  id]
     );
     return result.affectedRows;
   },

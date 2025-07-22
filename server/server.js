@@ -37,6 +37,9 @@ app.get('/api/rooms/:id/available', roomController.checkAvailable);
 // auth routes
 app.post('/api/register', customerController.register);
 app.post('/api/login', customerController.login);
+
+app.post('/api/admin/login', employeeController.login);
+
 //
 app.get('/api/customerlist', customerController.getCustomerList);
 app.get('/api/customer/:id', customerController.getCustomerById);
