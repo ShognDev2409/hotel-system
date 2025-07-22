@@ -251,6 +251,34 @@ const getBookingSummary = async (filters = {}) => {
     return result;
 };
 
+const getCheckinReport = async (filters = {}) => {
+    const reports = await bookRepo.getCheckinReport(filters);
+    const summary = await bookRepo.getCheckinSummary(filters); // ← This calls the summary method
+    
+    return {
+        summary: {
+            total_checkins: summary.total_checkins || 0,
+            currently_staying: summary.currently_staying || 0,
+            checked_out: summary.checked_out || 0,
+            pending_checkin: summary.pending_checkin || 0,
+            occupancy_rate: summary.occupancy_rate || 0,
+            avg_stay_days: summary.avg_stay_days || 0,
+            total_revenue: summary.total_revenue || 0
+        },
+        data: reports.map(report => ({
+            checkin_id: report.checkin_id,
+            customer_name: report.customer_name,
+            room_name: report.room_name,
+            checkin_date: formatDateToYMD(report.startDate),
+            checkout_date: formatDateToYMD(report.endDate),
+            total_stay_days: report.total_stay_days,
+            status: report.status_lao,
+            status_raw: report.status
+        }))
+    };
+};
+
+
 module.exports = {
     createBookingWithDetail,
     getBookingById,
@@ -266,5 +294,6 @@ module.exports = {
     getAverageRevenue,
     getGrowthPercentage,
     getBookingReport,
-    getBookingSummary
+    getBookingSummary,
+    getCheckinReport
 };

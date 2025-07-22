@@ -44,6 +44,8 @@ app.put('/api/customer/:id', customerController.updateCustomerById);
 app.delete('/api/customer/:id', customerController.deleteCustomerById);
 
 app.get('/api/customerReport', customerController.getFullCustomerBookingReport);
+
+
 // room detail 
 app.get('/api/details', detailController.getAllDetails);
 app.get('/api/details/:id', detailController.getDetailById);
@@ -76,6 +78,8 @@ app.get('/api/booking/report', bookingController.getBookingReport);
 // income page with query param
 app.get('/api/income/report', bookingController.getDashboardSummary);
 
+//check in out report
+app.get('/api/booking/checkin-report', bookingController.getCheckinReport);
 // employee
 app.get('/api/employees', employeeController.getEmployeeList);
 app.get('/api/employees/:id', employeeController.getEmployeeById);
