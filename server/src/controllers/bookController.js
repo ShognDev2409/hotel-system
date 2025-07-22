@@ -62,7 +62,7 @@ exports.createBookingWithDetail = async (req, res, next) => {
 
     // Validate required fields
     if (!booking || !detail || !booking.cus_id || !booking.startDate || 
-        !booking.endDate || !detail.Room_id || !booking.emp_id) {
+        !booking.endDate || !detail.Room_id ) {
       return res.status(400).json({ success: false, message: 'Missing required data' });
     }
 

@@ -316,7 +316,8 @@ export default {
           startDate: this.form.checkIn,
           endDate: this.form.checkOut,
           payment_image: this.form.imageBase64,
-          total_price: this.totalPrice
+          total_price: this.totalPrice,
+          emp_id: 21
         },
         detail: {
           Room_id: this.room.id,

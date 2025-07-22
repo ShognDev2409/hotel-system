@@ -31,7 +31,7 @@
 </template>
 
 <script>
-import AdminSidebar from '@/components/AdminSidebar.vue'
+import AdminSidebar from '@/components/AdminSidebar.vue';
 
 export default {
   name: 'AdminPage',
@@ -60,10 +60,13 @@ export default {
       return pageTitles[this.$route.name] || 'ລະບົບຈັດການໂຮງແຮມ'
     },
     handleLogout() {
-      // Handle logout logic
-      localStorage.removeItem('admin_token')
-      this.$router.push('/login')
-    }
+    // 1) remove exactly the same keys you set on login
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    // 2) redirect to the admin‐login page
+    this.$router.push({ name: "admin-login" });
+  }
   }
 }
 </script>
