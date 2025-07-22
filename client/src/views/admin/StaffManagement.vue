@@ -167,6 +167,17 @@
                 </select>
               </div>
             </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>ຕຳແໜ່ງ <span class="required">*</span></label>
+                <select v-model="form.role" class="form-input" required>
+                  <option value="">ເລືອກຕຳແໜ່ງ</option>
+                  <option v-for="userType in userTypes" :key="userType.id" :value="userType.id">
+                    {{ userType.name }}
+                  </option>
+                </select>
+              </div>
+            </div>
 
             <div class="form-row">
               <div class="form-group">
@@ -310,9 +321,9 @@ export default {
         gender: '',
         birthday: '',
         idcard: '',
-        District_id: 1,
-        Province_id: 1,
-        village_id: 1,
+        District_id: "",
+        Province_id: "",
+        village_id: "",
         role: '',
         Province_name: '',
         District_name: '',
@@ -391,7 +402,20 @@ export default {
           await axios.put(`http://localhost:3000/api/employees/${this.form.e_id}`, this.form);
           this.showMessage('ແກ້ໄຂຂໍ້ມູນສຳເລັດ', 'success');
         } else {
-          await axios.post('http://localhost:3000/api/employees', this.form);
+          // Prepare payload for new employee
+          const payload = {
+            name: this.form.name,
+            last_name: this.form.last_name,
+            gender: this.form.gender,
+            birthday: this.form.birthday,
+            tel: this.form.tel,
+            idcard: this.form.idcard,
+            District_id: String(this.form.District_id),
+            Province_id: String(this.form.Province_id),
+            village_id: String(this.form.village_id),
+            role: this.form.role
+          };
+          await axios.post('http://localhost:3000/api/employees', payload);
           this.showMessage('ເພີ່ມຂໍ້ມູນສຳເລັດ', 'success');
         }
         this.fetchStaff();

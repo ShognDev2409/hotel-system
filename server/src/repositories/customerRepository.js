@@ -36,20 +36,23 @@ exports.updateCustomer = async (id, data) => {
   const fields = [];
   const values = [];
 
-  for (const key in data) {
+  for (const [key, value] of Object.entries(data)) {
     fields.push(`${key} = ?`);
-    values.push(data[key]);
+    values.push(value);
   }
 
-  values.push(id);
+  if (fields.length === 0) throw new Error('No fields to update');
 
   const sql = `UPDATE customer SET ${fields.join(', ')} WHERE c_id = ?`;
+  values.push(id);
+
   const [result] = await pool.query(sql, values);
-  return result.affectedRows > 0;
+  return result;
 };
 
 exports.deleteCustomer = async (id) => {
   const [result] = await pool.query('DELETE FROM customer WHERE c_id = ?', [id]);
-  return result.affectedRows > 0;
+  return result;
 };
+
 

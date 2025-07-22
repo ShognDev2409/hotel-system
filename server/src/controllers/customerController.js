@@ -36,14 +36,11 @@ const customerController = {
       res.status(500).json({ error: 'Failed to fetch customer' });
     }
   } ,
-  async updateCustomerById(req, res) {
+async updateCustomerById(req, res) {
   try {
-    const updated = await customerService.updateCustomerById(req.params.id, req.body);
-    if (updated) {
-      res.status(200).json({ message: 'Customer updated' });
-    } else {
-      res.status(404).json({ error: 'Customer not found' });
-    }
+    const id = req.params.id;
+    const result = await customerService.updateCustomerById(id, req.body);
+    res.status(200).json({ message: 'Customer updated successfully', result });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -51,16 +48,14 @@ const customerController = {
 
 async deleteCustomerById(req, res) {
   try {
-    const deleted = await customerService.deleteCustomerById(req.params.id);
-    if (deleted) {
-      res.status(200).json({ message: 'Customer deleted' });
-    } else {
-      res.status(404).json({ error: 'Customer not found' });
-    }
+    const id = req.params.id;
+    await customerService.deleteCustomerById(id);
+    res.status(200).json({ message: 'Customer deleted successfully' });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to delete customer' });
+    res.status(400).json({ error: err.message });
   }
 }
+
 
 };
 
