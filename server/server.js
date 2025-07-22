@@ -43,9 +43,7 @@ app.get('/api/customer/:id', customerController.getCustomerById);
 app.put('/api/customer/:id', customerController.updateCustomerById);
 app.delete('/api/customer/:id', customerController.deleteCustomerById);
 
-
-
-
+app.get('/api/customerReport', customerController.getFullCustomerBookingReport);
 // room detail 
 app.get('/api/details', detailController.getAllDetails);
 app.get('/api/details/:id', detailController.getDetailById);
@@ -92,8 +90,13 @@ app.all('*', (req, res) => {
   });
 });
 
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.url}`);
+  next();
+});
 // Global error handler
 app.use((err, req, res, next) => {
+ 
   console.error(err.stack);
   res.status(500).json({ success: false, message: 'Something went wrong!' });
 });

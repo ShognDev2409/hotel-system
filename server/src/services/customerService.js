@@ -32,26 +32,51 @@ class CustomerService {
     return await customerRepository.findByID(id);
   }
 
-async updateCustomerById(id, data) {
-  const customer = await customerRepository.findByID(id);
-  if (!customer) throw new Error('Customer not found');
+  async updateCustomerById(id, data) {
+    const customer = await customerRepository.findByID(id);
+    if (!customer) throw new Error('Customer not found');
 
-  if (data.password) {
-    data.password = await bcrypt.hash(data.password, 10);
+    if (data.password) {
+      data.password = await bcrypt.hash(data.password, 10);
+    }
+
+    return await customerRepository.updateCustomer(id, data);
   }
 
-  return await customerRepository.updateCustomer(id, data);
-}
+  async deleteCustomerById(id) {
+    const customer = await customerRepository.findByID(id);
+    if (!customer) throw new Error('Customer not found');
 
-async deleteCustomerById(id) {
-  const customer = await customerRepository.findByID(id);
-  if (!customer) throw new Error('Customer not found');
+    return await customerRepository.deleteCustomer(id);
+  }
 
-  return await customerRepository.deleteCustomer(id);
-}
+  async getFullCustomerBookingReport() {
+    try {
+      console.log("📞 Called getFullCustomerBookingReport in service");
+      
+      // Get report
+      console.log("🔍 Fetching customer booking report...");
+      const report = await customerRepository.getCustomerBookingReport();
+      console.log("📊 Report data received:", JSON.stringify(report, null, 2));
+      
+      // Get summary
+      console.log("🔍 Fetching customer booking summary...");
+      const summary = await customerRepository.getCustomerBookingSummary();
+      console.log("📈 Summary data received:", JSON.stringify(summary, null, 2));
+      
+      const result = { 
+        report: report || [],
+        summary: summary || {}
+      };
+      
+      console.log("✅ Final result to return:", JSON.stringify(result, null, 2));
+      return result;
+    } catch (error) {
+      console.error("❌ Error in getFullCustomerBookingReport:", error);
+      throw error; // Re-throw to be handled by the controller
+    }
+  }
 
-
-  
 }
 
 module.exports = new CustomerService();
