@@ -217,258 +217,304 @@ export default {
   name: 'CustomerManagement',
   data() {
     return {
-      loading: false,
-      saving: false,
-      apiError: null,
+      customers: [],
+      filteredCustomers: [],
+      loading: true,
       searchQuery: '',
       statusFilter: '',
-      customers: [],
-      customerStats: {
-        total: 0,
-        active: 0,
-        pending: 0,
-        suspended: 0
-      },
       showModal: false,
       showDetailsModal: false,
       isEditing: false,
+      saving: false,
       selectedCustomer: null,
+      message: { 
+        show: false, 
+        text: '', 
+        type: '' 
+      },
       form: {
         firstName: '',
         lastName: '',
         phone: '',
         email: '',
         location: '',
-        gender: '',
-        birthday: '',
-        status: 'ໃຊ້ງານ'
-      },
-      message: {
-        show: false,
-        text: '',
-        type: 'success'
+        status: 'ໃຊ້ງານ',
+        gender: 'M',
+        birthday: ''
       }
     }
   },
-
   computed: {
-    filteredCustomers() {
-      return customerService.searchCustomers(this.customers, this.searchQuery, this.statusFilter)
-    },
-
-    totalCustomers() {
-      return this.customerStats.total || this.customers.length
-    },
-
-    activeCustomers() {
-      return this.customerStats.active || this.customers.filter(c => c.status === 'ໃຊ້ງານ').length
-    },
-
-    pendingCustomers() {
-      return this.customerStats.pending || this.customers.filter(c => c.status === 'ລໍຖ້າອະນຸມັດ').length
-    },
-
-    suspendedCustomers() {
-      return this.customerStats.suspended || this.customers.filter(c => c.status === 'ລະງັບ').length
+    // API Base URL
+    API_BASE() {
+      return 'http://localhost:3000/api';
     }
   },
-
+  watch: {
+    // Watch for changes in search and filter
+    searchQuery() {
+      this.filterCustomers();
+    },
+    statusFilter() {
+      this.filterCustomers();
+    },
+    customers() {
+      this.filterCustomers();
+    }
+  },
+  mounted() {
+    this.fetchCustomers();
+  },
   methods: {
-    async loadCustomers() {
-      console.log('=== DEBUG START ===')
-      console.log('1. Starting to load customers...')
-      console.log('2. Token:', localStorage.getItem('authToken'))
-      
-      this.loading = true
-      this.apiError = null
+    // Fetch customers from API
+    async fetchCustomers() {
       try {
-        console.log('3. Calling customerService.getAllCustomers()')
-        const response = await customerService.getAllCustomers()
-        console.log('4. Raw response:', response)
-        console.log('5. Response data:', response.data)
+        this.loading = true;
+        const response = await fetch(`${this.API_BASE}/customerlist`);
         
-        if (!response.data || !Array.isArray(response.data)) {
-          console.error('6. Invalid response data format')
-          return
+        if (!response.ok) {
+          throw new Error('Failed to fetch customers');
         }
         
-        console.log('7. Processing customers...')
-        this.customers = response.data
-          .map((customer, index) => {
-            console.log(`8.${index} Processing:`, customer)
-            const transformed = customerService.transformCustomerData(customer)
-            console.log(`9.${index} Transformed:`, transformed)
-            return transformed
-          })
-          .filter(customer => customer !== null)
+        const data = await response.json();
         
-        console.log('10. Final customers:', this.customers)
-        
-        // คำนวณ stats
-        this.customerStats = {
-          total: this.customers.length,
-          active: this.customers.filter(c => c.status === 'ໃຊ້ງານ').length,
-          pending: this.customers.filter(c => c.status === 'ລໍຖ້າອະນຸມັດ').length,
-          suspended: this.customers.filter(c => c.status === 'ລະງັບ').length
-        }
-        
-        this.showMessage('โหลดข้อมูลลูกค้าสำเร็จ', 'success')
+        // Map API data to component format
+        this.customers = data.map(customer => ({
+          id: customer.c_id,
+          firstName: customer.name,
+          lastName: customer.last_name,
+          phone: customer.tel,
+          email: customer.email,
+          location: customer.address,
+          gender: customer.gender,
+          birthday: customer.birthday,
+          status: 'ໃຊ້ງານ', // Default status since API doesn't provide it
+          registrationDate: new Date().toISOString() // Default since API doesn't provide it
+        }));
         
       } catch (error) {
-        console.error('ERROR:', error)
-        this.showMessage('เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error')
+        console.error('Error fetching customers:', error);
+        this.showMessage('ເກີດຂໍ້ຜິດພາດໃນການໂຫຼດຂໍ້ມູນລູກຄ້າ', 'error');
       } finally {
-        this.loading = false
-        console.log('=== DEBUG END ===')
+        this.loading = false;
       }
     },
 
+    // Add new customer
+    async addCustomer(customerData) {
+      try {
+        this.saving = true;
+        
+        const payload = {
+          name: customerData.firstName,
+          last_name: customerData.lastName,
+          gender: customerData.gender,
+          birthday: customerData.birthday || '1990-01-01',
+          tel: customerData.phone,
+          email: customerData.email,
+          address: customerData.location,
+          password: 'defaultpassword' // You may want to add password field to form
+        };
+
+        const response = await fetch(`${this.API_BASE}/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to add customer');
+        }
+
+        this.showMessage('ເພີ່ມລູກຄ້າສໍາເລັດແລ້ວ', 'success');
+        await this.fetchCustomers(); // Refresh the list
+        this.closeModal();
+        
+      } catch (error) {
+        console.error('Error adding customer:', error);
+        this.showMessage('ເກີດຂໍ້ຜິດພາດໃນການເພີ່ມລູກຄ້າ', 'error');
+      } finally {
+        this.saving = false;
+      }
+    },
+
+    // Update customer
+    async updateCustomer(customerId, customerData) {
+      try {
+        this.saving = true;
+        
+        const payload = {
+          name: customerData.firstName,
+          last_name: customerData.lastName,
+          gender: customerData.gender,
+          birthday: customerData.birthday,
+          tel: customerData.phone,
+          email: customerData.email,
+          address: customerData.location
+        };
+
+        const response = await fetch(`${this.API_BASE}/customer/${customerId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update customer');
+        }
+
+        this.showMessage('ອັບເດດຂໍ້ມູນລູກຄ້າສໍາເລັດແລ້ວ', 'success');
+        await this.fetchCustomers(); // Refresh the list
+        this.closeModal();
+        
+      } catch (error) {
+        console.error('Error updating customer:', error);
+        this.showMessage('ເກີດຂໍ້ຜິດພາດໃນການອັບເດດຂໍ້ມູນ', 'error');
+      } finally {
+        this.saving = false;
+      }
+    },
+
+    // Handle form submission
+    saveCustomer() {
+      // Basic validation
+      if (!this.form.firstName || !this.form.lastName || !this.form.email || !this.form.phone || !this.form.location) {
+        this.showMessage('ກະລຸນາຕື່ມຂໍ້ມູນໃຫ້ຄົບຖ້ວນ', 'error');
+        return;
+      }
+
+      if (this.isEditing && this.selectedCustomer) {
+        this.updateCustomer(this.selectedCustomer.id, this.form);
+      } else {
+        this.addCustomer(this.form);
+      }
+    },
+
+    // Filter customers based on search and status
+    filterCustomers() {
+      let filtered = this.customers;
+      
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase();
+        filtered = filtered.filter(customer =>
+          customer.firstName.toLowerCase().includes(query) ||
+          customer.lastName.toLowerCase().includes(query) ||
+          customer.email.toLowerCase().includes(query) ||
+          customer.phone.includes(query)
+        );
+      }
+      
+      if (this.statusFilter) {
+        filtered = filtered.filter(customer => customer.status === this.statusFilter);
+      }
+      
+      this.filteredCustomers = filtered;
+    },
+
+    // Show message
+    showMessage(text, type) {
+      this.message = { show: true, text, type };
+      setTimeout(() => {
+        this.message = { show: false, text: '', type: '' };
+      }, 3000);
+    },
+
+    // Modal handlers
     openAddModal() {
-      this.isEditing = false
-      this.resetForm()
-      this.showModal = true
-    },
-
-    editCustomer(customer) {
-      this.isEditing = true
-      this.form = { ...customer }
-      this.showModal = true
-    },
-
-    closeModal() {
-      this.showModal = false
-      this.resetForm()
-    },
-
-    resetForm() {
       this.form = {
         firstName: '',
         lastName: '',
         phone: '',
         email: '',
         location: '',
-        status: 'ໃຊ້ງານ'
-      }
+        status: 'ໃຊ້ງານ',
+        gender: 'M',
+        birthday: ''
+      };
+      this.isEditing = false;
+      this.selectedCustomer = null;
+      this.showModal = true;
     },
 
-    async saveCustomer() {
-      // Validate customer data
-      const validation = customerService.validateCustomerData(this.form)
-      if (!validation.isValid) {
-        this.showMessage(validation.errors.join(', '), 'error')
-        return
-      }
+    editCustomer(customer) {
+      this.form = {
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        phone: customer.phone,
+        email: customer.email,
+        location: customer.location,
+        status: customer.status,
+        gender: customer.gender,
+        birthday: customer.birthday ? customer.birthday.split('T')[0] : ''
+      };
+      this.isEditing = true;
+      this.selectedCustomer = customer;
+      this.showModal = true;
+    },
 
-      this.saving = true
-      try {
-        // แปลงข้อมูลจาก frontend format เป็น database format
-        const dbData = customerService.transformToDbFormat(this.form)
-        console.log('📤 Sending data to API:', dbData)
-
-        if (this.isEditing) {
-          // Update existing customer
-          await customerService.updateCustomer(this.form.c_id, dbData)
-          this.showMessage('แก้ไขข้อมูลลูกค้าสำเร็จ', 'success')
-        } else {
-          // Add new customer
-          await customerService.createCustomer(dbData)
-          this.showMessage('เพิ่มลูกค้าใหม่สำเร็จ', 'success')
-        }
-
-        this.closeModal()
-        this.loadCustomers() // Reload data
-        
-      } catch (error) {
-        console.error('❌ Save customer error:', error)
-        this.showMessage(error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error')
-      } finally {
-        this.saving = false
-      }
+    closeModal() {
+      this.showModal = false;
+      this.selectedCustomer = null;
+      this.saving = false;
     },
 
     viewCustomerDetails(customer) {
-      this.selectedCustomer = customer
-      this.showDetailsModal = true
+      this.selectedCustomer = customer;
+      this.showDetailsModal = true;
     },
 
     closeDetailsModal() {
-      this.showDetailsModal = false
-      this.selectedCustomer = null
+      this.showDetailsModal = false;
+      this.selectedCustomer = null;
     },
 
     async deleteCustomer(customerId) {
-      if (confirm('ທ່ານແນ່ໃຈບໍ່ວ່າຈະລຶບລູກຄ້າທ່ານນີ້?')) {
+      if (confirm('ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການລຶບລູກຄ້ານີ້?')) {
+        // Note: You'll need to implement DELETE endpoint in your API
+        // For now, just show a message
+        this.showMessage('ຟີເຈີລຶບຍັງບໍ່ພ້ອມໃຊ້ງານ', 'error');
+        
+        // When you have DELETE endpoint, uncomment and modify this:
+        
         try {
-          console.log('🗑️ Deleting customer with ID:', customerId)
+          const response = await fetch(`${this.API_BASE}/customer/${customerId}`, {
+            method: 'DELETE',
+          });
           
-          // customerId คือ c_id จริง (26, 25, 24, etc.) ไม่ใช่ CUST026
-          await customerService.deleteCustomer(customerId)
+          if (!response.ok) {
+            throw new Error('Failed to delete customer');
+          }
           
-          this.showMessage('ลบลูกค้าสำเร็จ', 'success')
-          this.loadCustomers() // Reload data
+          this.showMessage('ລຶບລູກຄ້າສໍາເລັດແລ້ວ', 'success');
+          await this.fetchCustomers();
           
         } catch (error) {
-          console.error('❌ Delete customer error:', error)
-          this.showMessage(error.response?.data?.message || 'เกิดข้อผิดพลาดในการลบลูกค้า', 'error')
+          console.error('Error deleting customer:', error);
+          this.showMessage('ເກີດຂໍ້ຜິດພາດໃນການລຶບລູກຄ້າ', 'error');
         }
+        
       }
     },
 
-    // เพิ่ม method สำหรับตรวจสอบ authentication
-    checkAuthentication() {
-      if (!customerService.isAuthenticated()) {
-        this.showMessage('กรุณาเข้าสู่ระบบ', 'error')
-        setTimeout(() => {
-          this.$router.push('/login')
-        }, 2000)
-        return false
-      }
-      return true
-    },
-
-    clearFilters() {
-      this.searchQuery = ''
-      this.statusFilter = ''
-    },
-
-    exportData() {
-      // Implement export functionality
-      this.showMessage('ຟີເຈີ Export ກໍາລັງພັດທະນາ', 'info')
-    },
-
-    formatDate(date) {
-      if (!date) return '-'
-      return new Date(date).toLocaleDateString('lo-LA')
+    // Utility functions
+    formatDate(dateString) {
+      if (!dateString) return '-';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('lo-LA');
     },
 
     getStatusClass(status) {
       switch (status) {
-        case 'ໃຊ້ງານ':
-          return 'status-active'
-        case 'ລໍຖ້າອະນຸມັດ':
-          return 'status-pending'
-        case 'ລະງັບ':
-          return 'status-suspended'
-        default:
-          return 'status-default'
+        case 'ໃຊ້ງານ': return 'status-active';
+        case 'ລໍຖ້າອະນຸມັດ': return 'status-pending';
+        case 'ລະງັບ': return 'status-suspended';
+        default: return 'status-active';
       }
-    },
-
-    showMessage(text, type = 'success') {
-      this.message = {
-        show: true,
-        text,
-        type
-      }
-      setTimeout(() => {
-        this.message.show = false
-      }, 5000)
     }
-  },
-
-  mounted() {
-    console.log('🚀 CustomerManagement component mounted')
-    this.loadCustomers()
   }
 }
 </script>
