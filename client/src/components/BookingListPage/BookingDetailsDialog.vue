@@ -81,7 +81,7 @@ export default {
     getStatusColor(status) {
       const colors = {
         pending: 'orange darken-1',
-        confirmed: 'green darken-1',
+        approved: 'green darken-1',
         checked_in: 'blue darken-1',
         cancelled: 'red darken-1',
       };
@@ -90,7 +90,7 @@ export default {
     getStatusText(status) {
       const texts = {
         pending: 'ລໍຖ້າອະນຸມັດ',
-        confirmed: 'ຢືນຢັນແລ້ວ',
+        approved: 'ຢືນຢັນແລ້ວ',
         checked_in: 'ເຊັກອິນແລ້ວ',
         cancelled: 'ຍົກເລີກ',
       };
