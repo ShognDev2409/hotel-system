@@ -293,7 +293,7 @@ export default {
       this.error = null;
       
       try {
-        const response = await fetch('https://hotel-api.phoudthasone.com/api/bookings');
+        const response = await fetch('http://localhost:3000/api/bookings');
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

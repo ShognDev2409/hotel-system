@@ -76,8 +76,27 @@
               <span>Total Stay: <strong>{{ numberOfNights }} {{ numberOfNights > 1 ? 'Nights' : 'Night' }}</strong></span>
             </v-col>
 
-            <v-col cols="12" class="mt-4">
-              <!-- Simple file input without hidden wrapper -->
+            <v-col cols="12" class="mt-4" v-if="totalPrice > 0">
+              <div class="payment-section">
+                <div class="price-display">
+                  <v-icon color="green darken-2" class="mr-2">mdi-cash</v-icon>
+                  <span class="price-label">Total Price:</span>
+                  <span class="price-amount">{{ totalPrice.toLocaleString() }} LAK</span>
+                </div>
+                <v-divider class="my-4"></v-divider>
+                <div class="qr-code-area text-center">
+                  <h3 class="section-title-small">Scan QR to Pay</h3>
+                  <v-img
+                      src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=pay-me-now"
+                      alt="Mock QR Code for Payment"
+                      max-width="150"
+                      class="mx-auto my-2 elevation-2 rounded-lg"
+                  ></v-img>
+                </div>
+              </div>
+            </v-col>
+            <v-col cols="12" class="mt-6">
+               <h3 class="section-title text-center">Upload Payment Statement</h3>
               <input
                 ref="hiddenFileInput"
                 type="file"
@@ -89,7 +108,7 @@
               <div class="file-drop-zone" @click="triggerFileSelect">
                 <div v-if="!form.imageBase64" class="text-center placeholder-content">
                   <v-icon class="upload-icon" size="48">mdi-cloud-upload-outline</v-icon>
-                  <div class="upload-text">Click to upload your Payment Statement</div>
+                  <div class="upload-text">Click to upload your receipt</div>
                   <div class="upload-subtext">PNG, JPG or GIF</div>
                 </div>
                 <div v-else class="image-preview-container">
@@ -110,7 +129,6 @@
                 </div>
               </div>
               
-              <!-- Error message for validation -->
               <div v-if="imageError" class="error--text text-caption mt-2">
                 {{ imageError }}
               </div>
@@ -143,10 +161,12 @@
 <script>
 import BookingService from '@/services/bookingService.js';
 import { mapGetters } from 'vuex';
+import axios from 'axios';
 
 export default {
   name: 'BookingDialog',
   props: {
+    // IMPORTANT: Make sure your room object contains a 'price' property (e.g., room.price)
     room: { type: Object, required: true },
     isAvailable: { type: Boolean, default: true }
   },
@@ -176,28 +196,57 @@ export default {
       if (!this.form.checkIn || !this.form.checkOut) return 0;
       const start = new Date(this.form.checkIn);
       const end = new Date(this.form.checkOut);
+      if (end <= start) return 0;
       const diffTime = end - start;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       return diffDays > 0 ? diffDays : 0;
+    },
+    totalPrice() {
+      if (!this.room.price || this.numberOfNights <= 0) return 0;
+      return this.numberOfNights * this.room.price;
     },
     isFormValid() {
       return this.valid && 
              this.form.checkIn && 
              this.form.checkOut && 
+             this.numberOfNights > 0 &&
              this.form.imageBase64 &&
              !this.imageError;
     }
   },
   methods: {
-    fetchUserData() {
-      const mockUser = { 
-        name: 'Somchai Jaidee', 
-        email: 'somchai.j@example.com', 
-        phone: '020 55 123 456' 
-      };
-      this.form.name = mockUser.name;
-      this.form.email = mockUser.email;
-      this.form.phone = mockUser.phone;
+    async fetchUserData() {
+      this.isLoading = true;
+      this.error     = null;
+
+      try {
+        // 1) hit your customer endpoint (don’t forget http://)
+        const response = await axios.get(
+          `http://127.0.0.1:3000/api/customer/${this.cusId}`
+        );
+
+        // 2) the API returns the object directly
+        const cust = response.data;  
+        // {
+        //   c_id: 38,
+        //   name: "testt",
+        //   last_name: "testt",
+        //   tel: "12345678",
+        //   email: "test@gmaill.com",
+        //   …
+        // }
+
+        // 3) build full name and populate your form
+        this.form.name  = `${cust.name} ${cust.last_name}`;
+        this.form.email = cust.email;
+        this.form.phone = cust.tel;
+
+      } catch (err) {
+        this.error = 'Failed to fetch customer data.';
+        console.error('fetchUserData error:', err);
+      } finally {
+        this.isLoading = false;
+      }
     },
     
     triggerFileSelect() {
@@ -212,33 +261,23 @@ export default {
     },
     
     handleImageUpload(file) {
-      // Reset error
       this.imageError = '';
-      
       if (!file) {
         this.form.imageBase64 = '';
         this.form.imageFile = null;
         return;
       }
-      
-      // Validate file type
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
       if (!validTypes.includes(file.type)) {
         this.imageError = 'Please upload a valid image file (PNG, JPG, or GIF)';
         return;
       }
-      
-      // Validate file size (max 5MB)
-      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      const maxSize = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSize) {
         this.imageError = 'File size must be less than 5MB';
         return;
       }
-      
-      // Store the file
       this.form.imageFile = file;
-      
-      // Convert to base64
       const reader = new FileReader();
       reader.onload = (e) => {
         this.form.imageBase64 = e.target.result;
@@ -255,31 +294,29 @@ export default {
       this.form.imageFile = null;
       this.form.imageBase64 = '';
       this.imageError = '';
-      // Reset the file input
       if (this.$refs.hiddenFileInput) {
         this.$refs.hiddenFileInput.value = '';
       }
     },
     
     async submit() {
-      // Additional validation
       if (!this.form.imageBase64) {
         this.imageError = 'Please upload a payment statement';
         return;
       }
       
-      if (!this.$refs.form.validate()) {
+      if (!this.$refs.form.validate() || !this.isFormValid) {
         return;
       }
       
       this.submitting = true;
-
       const payload = {
         booking: {
           cus_id: this.cusId, 
           startDate: this.form.checkIn,
           endDate: this.form.checkOut,
           payment_image: this.form.imageBase64,
+          total_price: this.totalPrice
         },
         detail: {
           Room_id: this.room.id,
@@ -292,7 +329,6 @@ export default {
         if (response.success) {
           this.$emit('book-success');
           this.dialog = false;
-          // Reset form
           this.resetForm();
           alert(response.message);
           this.$router.push('/booking-list');
@@ -324,8 +360,12 @@ export default {
   watch: {
     dialog(val) {
       if (!val) {
-        // Reset form when dialog closes
         this.resetForm();
+      }
+    },
+    'form.checkIn': function (newVal) {
+      if (this.form.checkOut && new Date(newVal) >= new Date(this.form.checkOut)) {
+        this.form.checkOut = '';
       }
     }
   }
@@ -372,6 +412,12 @@ export default {
   font-weight: 600;
   color: #333;
   margin-bottom: 8px;
+}
+.section-title-small {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 4px;
 }
 .file-drop-zone {
   border: 2px dashed #ccc;
@@ -429,4 +475,28 @@ export default {
 .error--text {
   color: #ff5252;
 }
+
+/* START: Added styles for new payment section */
+.payment-section {
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 16px;
+}
+.price-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.price-label {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #444;
+}
+.price-amount {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #2e7d32;
+}
+/* END: Added styles for new payment section */
 </style>
