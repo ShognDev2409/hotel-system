@@ -3,6 +3,26 @@ const jwt = require('jsonwebtoken');
 const employeeRepository = require('../repositories/employeeRepository');
 
 class EmployeeService {
+  getAllEmployees() {
+    return employeeRepository.getAll();
+  }
+
+  getEmployeeById(id) {
+    return employeeRepository.getById(id);
+  }
+
+  createEmployee(employee) {
+    return employeeRepository.create(employee);
+  }
+
+  updateEmployee(id, employee) {
+    return employeeRepository.update(id, employee);
+  }
+
+  deleteEmployee(id) {
+    return employeeRepository.delete(id);
+  }
+
   async login({ name, password }) {
     const employee = await employeeRepository.findByEmail(name);
     if (!employee) throw new Error('Invalid name or password');
@@ -26,6 +46,8 @@ class EmployeeService {
     
     return { token, employee: employeeWithoutPassword };
   }
+
+  
 }
 
 module.exports = new EmployeeService();
