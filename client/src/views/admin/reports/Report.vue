@@ -233,11 +233,15 @@
                 @change="loadCheckinReport"
               >
               <select v-model="filters.checkin.roomType" class="form-select" @change="loadCheckinReport">
-                <option value="">ທຸກປະເພດຫ້ອງ</option>
-                <option value="standard">Standard</option>
-                <option value="deluxe">Deluxe</option>
-                <option value="suite">Suite</option>
-              </select>
+            <option value="">ທຸກປະເພດຫ້ອງ</option>
+            <option 
+              v-for="roomType in roomTypes" 
+              :key="roomType.id" 
+              :value="roomType.name"
+            >
+              {{ roomType.name }}
+            </option>
+          </select>
             </div>
           </div>
 
@@ -373,14 +377,28 @@ export default {
         occupied: 0,
         avgStay: 0
       },
-      checkinReportData: []
+      checkinReportData: [],
+      roomTypes: [],
     }
   },
   mounted() {
     this.initializeDates()
     this.loadReports()
+    this.loadRoomTypes() 
   },
   methods: {
+    async loadRoomTypes() {
+      try {
+        const response = await axios.get('http://localhost:3000/api/room-types')
+        if (response.data.success) {
+          this.roomTypes = response.data.data || []
+        }
+      } catch (error) {
+        console.error('Error loading room types:', error)
+        // Fallback to empty array
+        this.roomTypes = []
+      }
+    },
     initializeDates() {
       const now = new Date()
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -522,28 +540,61 @@ export default {
     },
 
     async loadCheckinReport() {
-      this.loading = true
-      try {
-        const params = {
-          date: this.filters.checkin.date,
-          roomType: this.filters.checkin.roomType
-        }
-        
-        const response = await axios.get('http://localhost:3000/api/reports/checkins', { params })
-        this.checkinReportData = response.data.checkins || []
-        this.checkinStats = response.data.stats || this.checkinStats
-      } catch (error) {
-        console.error('Error loading checkin report:', error)
-        // Mock data
-        this.checkinReportData = [
-          { id: 'CI001', guestName: 'ນາງ ສີດາ', roomNumber: '101', checkInDate: '2025-01-10', checkOutDate: '2025-01-12', stayDuration: 2, status: 'active' },
-          { id: 'CI002', guestName: 'ທ້າວ ບຸນມີ', roomNumber: '205', checkInDate: '2025-01-11', checkOutDate: '2025-01-14', stayDuration: 3, status: 'active' },
-        ]
-        this.checkinStats = { total: 45, today: 8, occupied: 78, avgStay: 2.5 }
-      } finally {
-        this.loading = false
+  this.loading = true
+  try {
+    const params = new URLSearchParams()
+    
+    // Add filters
+    if (this.filters.checkin.date) {
+      params.append('date', this.filters.checkin.date)
+    }
+    if (this.filters.checkin.roomType) {
+      params.append('roomType', this.filters.checkin.roomType)
+    }
+    
+    // ✅ MOVE DEBUG LOGGING HERE (before API call)
+    console.log('Filters being sent:', {
+      date: this.filters.checkin.date,
+      roomType: this.filters.checkin.roomType
+    });
+    console.log('API URL:', `http://localhost:3000/api/booking/checkin-report?${params}`);
+    
+    // Use correct endpoint
+    const response = await axios.get(`http://localhost:3000/api/booking/checkin-report?${params}`)
+    
+    if (response.data.success) {
+      // Map the data correctly
+      this.checkinReportData = (response.data.data || []).map(item => ({
+        id: item.checkin_id,
+        guestName: item.customer_name,
+        roomNumber: item.room_name,
+        checkInDate: item.checkin_date,
+        checkOutDate: item.checkout_date,
+        stayDuration: item.total_stay_days,
+        status: item.status_raw || item.status
+      }))
+      
+      // Map the summary stats
+      this.checkinStats = {
+        total: response.data.summary?.total_checkins || 0,
+        today: response.data.summary?.currently_staying || 0,
+        occupied: response.data.summary?.occupancy_rate || 0,
+        avgStay: response.data.summary?.avg_stay_days || 0
       }
-    },
+    } else {
+      this.checkinReportData = []
+      this.checkinStats = { total: 0, today: 0, occupied: 0, avgStay: 0 }
+    }
+  } catch (error) {
+    console.error('Error loading checkin report:', error)
+    
+    // Fallback to empty data
+    this.checkinReportData = []
+    this.checkinStats = { total: 0, today: 0, occupied: 0, avgStay: 0 }
+  } finally {
+    this.loading = false
+  }
+},
 
     async refreshReports() {
       await this.loadReports()
@@ -583,13 +634,16 @@ export default {
     },
 
     getCheckinStatusLabel(status) {
-      const labels = {
-        active: 'ກໍາລັງພັກ',
-        checkout: 'ອອກແລ້ວ',
-        pending: 'ລໍຖ້າເຂົ້າພັກ'
-      }
-      return labels[status] || status
-    }
+  const labels = {
+    checked_in: 'ກຳລັງພັກ',
+    checked_out: 'ອອກແລ້ວ', 
+    approved: 'ລໍຖ້າເຂົ້າພັກ',
+    pending: 'ລໍຖ້າການຢືນຢັນ',
+    active: 'ກຳລັງພັກ',
+    checkout: 'ອອກແລ້ວ'
+  }
+  return labels[status] || status
+}
   }
 }
 </script>
@@ -710,6 +764,20 @@ export default {
   transition: transform 0.3s ease;
 }
 
+.status-badge.checked_in {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-badge.checked_out {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.status-badge.approved {
+  background: #d1fae5;
+  color: #065f46;
+}
 .stat-card:hover {
   transform: translateY(-2px);
 }
