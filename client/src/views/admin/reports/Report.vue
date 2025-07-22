@@ -445,10 +445,29 @@ export default {
           endDate: this.filters.booking.endDate,
           status: this.filters.booking.status
         }
-        
-        const response = await axios.get('http://localhost:3000/api/reports/bookings', { params })
-        this.bookingReportData = response.data.bookings || []
-        this.bookingStats = response.data.stats || this.bookingStats
+        // Use new API endpoint and response structure
+        const response = await axios.get('http://localhost:3000/api/booking/report', { params })
+        if (response.data.success) {
+          this.bookingReportData = (response.data.data || []).map(item => ({
+            id: item.booking_id,
+            customerName: item.customer_name,
+            roomType: item.room_type,
+            roomName: item.room_name,
+            checkIn: item.start_date,
+            checkOut: item.end_date,
+            status: item.status,
+            amount: parseFloat(item.total_price)
+          }))
+          this.bookingStats = {
+            total: response.data.summary.total || 0,
+            confirmed: parseInt(response.data.summary.approved) || 0,
+            pending: parseInt(response.data.summary.pending) || 0,
+            cancelled: parseInt(response.data.summary.rejected) || 0
+          }
+        } else {
+          this.bookingReportData = []
+          this.bookingStats = { total: 0, confirmed: 0, pending: 0, cancelled: 0 }
+        }
       } catch (error) {
         console.error('Error loading booking report:', error)
         // Mock data for demonstration
@@ -469,9 +488,19 @@ export default {
           period: this.filters.revenue.period,
           month: this.filters.revenue.month
         }
-        
-        const response = await axios.get('http://localhost:3000/api/reports/revenue', { params })
-        this.revenueStats = response.data.stats || this.revenueStats
+        // Use new API endpoint and response structure
+        const response = await axios.get('http://localhost:3000/api/income/report', { params })
+        if (response.data.success && response.data.data) {
+          const d = response.data.data
+          this.revenueStats = {
+            total: d.totalRevenue || 0,
+            thisMonth: d.thisMonthRevenue || 0,
+            average: d.averageRevenue || 0,
+            growthPercent: d.growthPercentage || 0
+          }
+        } else {
+          this.revenueStats = { total: 0, thisMonth: 0, average: 0, growthPercent: 0 }
+        }
       } catch (error) {
         console.error('Error loading revenue report:', error)
         // Mock data

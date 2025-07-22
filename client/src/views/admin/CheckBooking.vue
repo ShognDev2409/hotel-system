@@ -293,7 +293,7 @@ export default {
       this.error = null;
       
       try {
-        const response = await fetch('https://hotel-api.phoudthasone.com/api/bookings');
+        const response = await fetch('http://localhost:3000/api/bookings');
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -341,8 +341,15 @@ export default {
     async confirmBooking(booking) {
       if (confirm(`ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການຢືນຢັນການຈອງ BK${String(booking.id).padStart(3, '0')}?`)) {
         try {
-          // Here you would make an API call to update the booking status
-          // For now, we'll just update locally
+          const response = await fetch(`http://localhost:3000/api/bookings/${booking.id}/approve`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          if (!response.ok) {
+            throw new Error('Failed to approve booking');
+          }
           booking.status = 'confirmed';
           this.showMessage(`ຢືນຢັນການຈອງ BK${String(booking.id).padStart(3, '0')} ສໍາເລັດ`, 'success');
         } catch (error) {
@@ -355,8 +362,15 @@ export default {
     async cancelBooking(booking) {
       if (confirm(`ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການຍົກເລີກການຈອງ BK${String(booking.id).padStart(3, '0')}?`)) {
         try {
-          // Here you would make an API call to update the booking status
-          // For now, we'll just update locally
+          const response = await fetch(`http://localhost:3000/api/bookings/${booking.id}/reject`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          if (!response.ok) {
+            throw new Error('Failed to reject booking');
+          }
           booking.status = 'cancelled';
           this.showMessage(`ຍົກເລີກການຈອງ BK${String(booking.id).padStart(3, '0')} ສໍາເລັດ`, 'success');
         } catch (error) {

@@ -71,7 +71,8 @@ app.get('/api/bookings/:id/details', bookingController.getBookingDetails);
 app.patch('/api/booking-details/:detailId/checkin', bookingController.updateCheckIn);
 app.patch('/api/booking-details/:detailId/checkout', bookingController.updateCheckOut);
 
-// dashboard
+
+// booking report
 app.get('/api/booking/report', bookingController.getBookingReport);
 
 // income page with query param
