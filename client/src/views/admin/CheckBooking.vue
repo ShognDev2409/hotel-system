@@ -11,12 +11,8 @@
     <!-- Search and Filters -->
     <div class="filters-section">
       <div class="search-box">
-        <input 
-          type="text" 
-          v-model="searchQuery" 
-          placeholder="ຄົ້ນຫາດ້ວຍເລກຈອງ, ຊື່ລູກຄ້າ, ຫຼືເບີໂທ..."
-          class="search-input"
-        >
+        <input type="text" v-model="searchQuery" placeholder="ຄົ້ນຫາດ້ວຍເລກຈອງ, ຊື່ລູກຄ້າ, ຫຼືເບີໂທ..."
+          class="search-input">
       </div>
       <div class="filter-controls">
         <select v-model="statusFilter" class="filter-select">
@@ -51,7 +47,7 @@
           <thead>
             <tr>
               <th>ເລກຈອງ</th>
-              <th>ລູກຄ້າ ID</th>
+              <th>ລູກຄ້າ</th>
               <th>ວັນທີ່ເຂົ້າ-ອອກ</th>
               <th>ຈໍານວນວັນ</th>
               <th>ຍອດລວມ</th>
@@ -62,16 +58,17 @@
           </thead>
           <tbody>
             <tr v-for="booking in filteredBookings" :key="booking.id">
-              <td class="booking-number">{{ String(booking.id) }}</td>
+              <td class="booking-number">{{ String(booking.id).padStart(3, '0') }}</td>
               <td class="customer-info">
                 <div class="customer-id">ລູກຄ້າ #{{ booking.cus_id }}</div>
-                <div class="user-id">ຜູ້ໃຊ້ #{{ booking.User_id }}</div>
+                <div class="user-id">{{ getCustomerName(booking.cus_id) }}</div>
               </td>
               <td class="dates">
                 <div>ເຂົ້າ: {{ formatDate(booking.startDate) }}</div>
                 <div>ອອກ: {{ formatDate(booking.endDate) }}</div>
               </td>
-              <td class="nights">{{ booking.total_stay_days || calculateDays(booking.startDate, booking.endDate) }} ວັນ</td>
+              <td class="nights">{{ booking.total_stay_days || calculateDays(booking.startDate, booking.endDate) }} ວັນ
+              </td>
               <td class="amount">
                 <div class="total-amount">{{ formatCurrency(booking.total_price) }}</div>
               </td>
@@ -81,11 +78,7 @@
                 </span>
               </td>
               <td class="payment-image">
-                <button 
-                  v-if="booking.payment_image" 
-                  class="btn btn-sm btn-info"
-                  @click="viewPaymentImage(booking)"
-                >
+                <button v-if="booking.payment_image" class="btn btn-sm btn-info" @click="viewPaymentImage(booking)">
                   👁️ ເບິ່ງຮູບ
                 </button>
                 <span v-else class="no-image">-</span>
@@ -94,18 +87,12 @@
                 <button class="btn btn-sm btn-info" @click="viewBookingDetails(booking)">
                   👁️ ລາຍລະອຽດ
                 </button>
-                <button 
-                  class="btn btn-sm btn-success" 
-                  @click="confirmBooking(booking)"
-                  v-if="booking.status === 'pending'"
-                >
+                <button class="btn btn-sm btn-success" @click="confirmBooking(booking)"
+                  v-if="booking.status === 'pending'">
                   ✓ ຢືນຢັນ
                 </button>
-                <button 
-                  class="btn btn-sm btn-danger" 
-                  @click="cancelBooking(booking)"
-                  v-if="booking.status !== 'cancelled' && booking.status !== 'checked_out'"
-                >
+                <button class="btn btn-sm btn-danger" @click="cancelBooking(booking)"
+                  v-if="booking.status !== 'cancelled' && booking.status !== 'checked_out'">
                   ✕ ຍົກເລີກ
                 </button>
               </td>
@@ -129,7 +116,7 @@
           <h3>ລາຍລະອຽດການຈອງ</h3>
           <button class="close-btn" @click="closeDetailsModal">✕</button>
         </div>
-        
+
         <div class="modal-body" v-if="selectedBooking">
           <div class="booking-details">
             <!-- Booking Information -->
@@ -142,6 +129,10 @@
               <div class="detail-row">
                 <span class="detail-label">ລະຫັດລູກຄ້າ:</span>
                 <span class="detail-value">{{ selectedBooking.cus_id }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">ຊື່ລູກຄ້າ:</span>
+                <span class="detail-value">{{ getCustomerName(selectedBooking.cus_id) }}</span>
               </div>
               <div class="detail-row">
                 <span class="detail-label">ລະຫັດຜູ້ໃຊ້:</span>
@@ -170,7 +161,8 @@
               </div>
               <div class="detail-row">
                 <span class="detail-label">ຈໍານວນວັນທີ່ພັກ:</span>
-                <span class="detail-value">{{ selectedBooking.total_stay_days || calculateDays(selectedBooking.startDate, selectedBooking.endDate) }} ວັນ</span>
+                <span class="detail-value">{{ selectedBooking.total_stay_days ||
+                  calculateDays(selectedBooking.startDate, selectedBooking.endDate) }} ວັນ</span>
               </div>
             </div>
 
@@ -188,14 +180,6 @@
                     ເບິ່ງຮູບການຊໍາລະ
                   </button>
                 </span>
-              </div>
-            </div>
-
-            <!-- Additional Details -->
-            <div class="detail-section" v-if="selectedBooking.details && selectedBooking.details.length > 0">
-              <h4>ລາຍລະອຽດເພີ່ມເຕີມ</h4>
-              <div class="additional-details">
-                <pre>{{ JSON.stringify(selectedBooking.details, null, 2) }}</pre>
               </div>
             </div>
           </div>
@@ -220,12 +204,8 @@
           <button class="close-btn" @click="closePaymentModal">✕</button>
         </div>
         <div class="modal-body">
-          <img 
-            v-if="selectedPaymentImage" 
-            :src="selectedPaymentImage" 
-            alt="Payment Image" 
-            class="payment-image-preview"
-          >
+          <img v-if="selectedPaymentImage" :src="selectedPaymentImage" alt="Payment Image"
+            class="payment-image-preview">
         </div>
       </div>
     </div>
@@ -251,6 +231,7 @@ export default {
       selectedBooking: null,
       selectedPaymentImage: null,
       bookings: [],
+      customerMap: {}, // Changed from arrays to a map
       message: {
         show: false,
         type: 'success',
@@ -258,52 +239,87 @@ export default {
       }
     }
   },
-  
+
   computed: {
     filteredBookings() {
       let filtered = this.bookings;
-      
+
       // Filter by search query
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
-        filtered = filtered.filter(booking => 
-          `BK${String(booking.id).padStart(3, '0')}`.toLowerCase().includes(query) ||
-          String(booking.cus_id).includes(query) ||
-          String(booking.User_id).includes(query)
-        );
+        filtered = filtered.filter(booking => {
+          const bookingId = `BK${String(booking.id).padStart(3, '0')}`.toLowerCase();
+          const customerName = this.getCustomerName(booking.cus_id).toLowerCase();
+          
+          return bookingId.includes(query) ||
+                 String(booking.cus_id).includes(query) ||
+                 String(booking.User_id).includes(query) ||
+                 customerName.includes(query);
+        });
       }
-      
+
       // Filter by status
       if (this.statusFilter) {
         filtered = filtered.filter(booking => booking.status === this.statusFilter);
       }
-      
+
       return filtered;
     }
   },
-  
+
   mounted() {
     this.loadBookings();
   },
-  
+
   methods: {
     // Load booking data from API
     async loadBookings() {
       this.loading = true;
       this.error = null;
-      
+
       try {
         const response = await fetch('http://localhost:3000/api/bookings');
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
-        
+
         if (result.success && result.data) {
           this.bookings = result.data;
-          console.log('Bookings loaded:', this.bookings);
+
+          // Get all unique cus_id values
+          const allCusIds = this.bookings.map(booking => booking.cus_id);
+          const uniqueCusIds = [...new Set(allCusIds)];
+
+          // Fetch customer details for each cus_id
+          const customerPromises = uniqueCusIds.map(cusId =>
+            fetch(`http://127.0.0.1:3000/api/customer/${cusId}`)
+              .then(res => res.json())
+              .catch(err => {
+                console.error(`Error fetching customer ${cusId}:`, err);
+                return null;
+              })
+          );
+
+          // Wait for all customer API calls to complete
+          const customerResponses = await Promise.all(customerPromises);
+
+          // Create a map of customer ID to full name
+          this.customerMap = {};
+          customerResponses.forEach(customer => {
+            if (customer && customer.c_id) {
+              const fullName = customer.name && customer.last_name 
+                ? `${customer.name} ${customer.last_name}` 
+                : 'Unknown Customer';
+              // Use c_id from the response (not the cusId from the loop)
+              this.customerMap[customer.c_id] = fullName;
+            }
+          });
+
+          console.log('Customer Map:', this.customerMap);
+
         } else {
           throw new Error('Invalid response format');
         }
@@ -315,7 +331,12 @@ export default {
         this.loading = false;
       }
     },
-    
+
+    // Get customer name by ID
+    getCustomerName(cusId) {
+      return this.customerMap[cusId] || 'Unknown Customer';
+    },
+
     // Calculate days between dates
     calculateDays(startDate, endDate) {
       const start = new Date(startDate);
@@ -324,22 +345,22 @@ export default {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       return diffDays;
     },
-    
+
     // View booking details
     viewBookingDetails(booking) {
       this.selectedBooking = booking;
       this.showDetailsModal = true;
     },
-    
+
     // View payment image
     viewPaymentImage(booking) {
       this.selectedPaymentImage = booking.payment_image;
       this.showPaymentModal = true;
     },
-    
+
     // Confirm booking
     async confirmBooking(booking) {
-      if (confirm(`ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການຢືນຢັນການຈອງ BK${String(booking.id).padStart(3, '0')}?`)) {
+      if (confirm(`ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການຢືນຢັນການຈອງ ${String(booking.id).padStart(3, '0')}?`)) {
         try {
           const response = await fetch(`http://localhost:3000/api/bookings/${booking.id}/approve`, {
             method: 'PUT',
@@ -357,7 +378,7 @@ export default {
         }
       }
     },
-    
+
     // Cancel booking
     async cancelBooking(booking) {
       if (confirm(`ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການຍົກເລີກການຈອງ BK${String(booking.id).padStart(3, '0')}?`)) {
@@ -378,18 +399,18 @@ export default {
         }
       }
     },
-    
+
     // Close modals
     closeDetailsModal() {
       this.showDetailsModal = false;
       this.selectedBooking = null;
     },
-    
+
     closePaymentModal() {
       this.showPaymentModal = false;
       this.selectedPaymentImage = null;
     },
-    
+
     // Export bookings
     exportBookings() {
       console.log('Exporting booking data...');
@@ -398,13 +419,14 @@ export default {
       this.downloadCSV(csvContent, 'bookings.csv');
       this.showMessage('ກໍາລັງໂຫຼດຂໍ້ມູນການຈອງ...', 'info');
     },
-    
+
     // Convert data to CSV
     convertToCSV(data) {
-      const headers = ['Booking ID', 'Customer ID', 'User ID', 'Start Date', 'End Date', 'Days', 'Total Price', 'Status'];
+      const headers = ['Booking ID', 'Customer ID', 'Customer Name', 'User ID', 'Start Date', 'End Date', 'Days', 'Total Price', 'Status'];
       const rows = data.map(booking => [
         `BK${String(booking.id).padStart(3, '0')}`,
         booking.cus_id,
+        this.getCustomerName(booking.cus_id),
         booking.User_id,
         booking.startDate,
         booking.endDate,
@@ -412,29 +434,29 @@ export default {
         booking.total_price,
         booking.status
       ]);
-      
+
       const csvContent = [headers, ...rows]
         .map(row => row.join(','))
         .join('\n');
-      
+
       return csvContent;
     },
-    
+
     // Download CSV file
     downloadCSV(content, filename) {
       const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      
+
       link.setAttribute('href', url);
       link.setAttribute('download', filename);
       link.style.visibility = 'hidden';
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     },
-    
+
     // Print booking
     printBooking() {
       if (this.selectedBooking) {
@@ -442,7 +464,7 @@ export default {
         this.showMessage('ກໍາລັງພິມຂໍ້ມູນການຈອງ...', 'info');
       }
     },
-    
+
     // Get status class for styling
     getStatusClass(status) {
       const statusMap = {
@@ -454,7 +476,7 @@ export default {
       };
       return statusMap[status] || 'status-default';
     },
-    
+
     // Get status text in Lao
     getStatusText(status) {
       const statusTextMap = {
@@ -466,13 +488,13 @@ export default {
       };
       return statusTextMap[status] || status;
     },
-    
+
     // Format date
     formatDate(date) {
       if (!date) return '-';
       return new Date(date).toLocaleDateString('lo-LA');
     },
-    
+
     // Format currency
     formatCurrency(amount) {
       const numAmount = parseFloat(amount) || 0;
@@ -482,7 +504,7 @@ export default {
         minimumFractionDigits: 0
       }).format(numAmount);
     },
-    
+
     // Show message
     showMessage(text, type = 'success') {
       this.message = { show: true, text, type };
@@ -556,7 +578,7 @@ export default {
   padding: 60px 20px;
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .loading-spinner {
@@ -570,8 +592,13 @@ export default {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .error-icon {
@@ -582,7 +609,7 @@ export default {
 .table-section {
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
@@ -654,11 +681,30 @@ export default {
   text-transform: uppercase;
 }
 
-.status-confirmed { background: #d4edda; color: #155724; }
-.status-pending { background: #fff3cd; color: #856404; }
-.status-checkin { background: #d1ecf1; color: #0c5460; }
-.status-checkout { background: #e2e3e5; color: #383d41; }
-.status-cancelled { background: #f8d7da; color: #721c24; }
+.status-confirmed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-checkin {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.status-checkout {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+.status-cancelled {
+  background: #f8d7da;
+  color: #721c24;
+}
 
 .actions {
   white-space: nowrap;
@@ -734,7 +780,7 @@ export default {
   padding: 60px 20px;
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .empty-icon {
@@ -749,7 +795,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -759,7 +805,7 @@ export default {
 .modal {
   background: white;
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   max-width: 600px;
   width: 90%;
   max-height: 90vh;
@@ -871,7 +917,7 @@ export default {
   max-width: 100%;
   height: auto;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .message {
@@ -884,7 +930,7 @@ export default {
   font-weight: 500;
   z-index: 1100;
   max-width: 400px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .message.success {
@@ -904,45 +950,45 @@ export default {
   .check-booking {
     padding: 15px;
   }
-  
+
   .page-header {
     flex-direction: column;
     gap: 15px;
     text-align: center;
   }
-  
+
   .filters-section {
     flex-direction: column;
   }
-  
+
   .filter-controls {
     flex-direction: column;
   }
-  
+
   .staff-table {
     font-size: 12px;
   }
-  
+
   .staff-table th,
   .staff-table td {
     padding: 8px 6px;
   }
-  
+
   .actions {
     display: flex;
     flex-direction: column;
     gap: 5px;
   }
-  
+
   .modal {
     width: 95%;
     margin: 10px;
   }
-  
+
   .booking-details {
     gap: 15px;
   }
-  
+
   .detail-row {
     flex-direction: column;
     gap: 5px;
@@ -951,6 +997,7 @@ export default {
 
 /* Print styles */
 @media print {
+
   .page-header button,
   .filters-section,
   .actions,
@@ -958,12 +1005,12 @@ export default {
   .modal-footer button {
     display: none !important;
   }
-  
+
   .modal-overlay {
     position: static;
     background: none;
   }
-  
+
   .modal {
     box-shadow: none;
     max-width: 100%;
