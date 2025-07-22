@@ -14,10 +14,10 @@ const EmployeeRepository = {
   async create(employee) {
     const [result] = await db.query(
       `INSERT INTO employee 
-      (name, last_name, gender, birthday, tel, idcard, District_id, Province_, village_id, role) 
+      (name, last_name, gender, birthday, tel, idcard, District_id, Province_id, village_id, role) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [employee.name, employee.last_name, employee.gender, employee.birthday, employee.tel,
-       employee.idcard, employee.District_id, employee.Province_, employee.village_id, employee.role]
+       employee.idcard, employee.District_id, employee.Province_id, employee.village_id, employee.role]
     );
     return result.insertId;
   },
@@ -26,7 +26,7 @@ const EmployeeRepository = {
     const [result] = await db.query(
       `UPDATE employee SET 
         name = ?, last_name = ?, gender = ?, birthday = ?, tel = ?, 
-        idcard = ?, District_id = ?, Province_ = ?, village_id = ?, role = ?
+        idcard = ?, District_id = ?, Province_id = ?, village_id = ?, role = ?
       WHERE e_id = ?`,
       [employee.name, employee.last_name, employee.gender, employee.birthday, employee.tel,
        employee.idcard, employee.District_id, employee.Province_, employee.village_id, employee.role, id]

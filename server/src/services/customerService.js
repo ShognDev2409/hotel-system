@@ -32,31 +32,24 @@ class CustomerService {
     return await customerRepository.findByID(id);
   }
 
-  async updateCustomerById(req, res) {
-  try {
-    const updated = await customerService.updateCustomerById(req.params.id, req.body);
-    if (updated) {
-      res.status(200).json({ message: 'Customer updated' });
-    } else {
-      res.status(404).json({ error: 'Customer not found' });
-    }
-  } catch (err) {
-    res.status(400).json({ error: err.message });
+async updateCustomerById(id, data) {
+  const customer = await customerRepository.findByID(id);
+  if (!customer) throw new Error('Customer not found');
+
+  if (data.password) {
+    data.password = await bcrypt.hash(data.password, 10);
   }
+
+  return await customerRepository.updateCustomer(id, data);
 }
 
-async deleteCustomerById(req, res) {
-  try {
-    const deleted = await customerService.deleteCustomerById(req.params.id);
-    if (deleted) {
-      res.status(200).json({ message: 'Customer deleted' });
-    } else {
-      res.status(404).json({ error: 'Customer not found' });
-    }
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to delete customer' });
-  }
+async deleteCustomerById(id) {
+  const customer = await customerRepository.findByID(id);
+  if (!customer) throw new Error('Customer not found');
+
+  return await customerRepository.deleteCustomer(id);
 }
+
 
   
 }
