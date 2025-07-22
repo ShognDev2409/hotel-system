@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { Room } from '@/models/room_model.js';
 
-const API_URL = 'https://hotel-api.phoudthasone.com/api/rooms';
+const API_URL = 'http://localhost:3000/api/rooms';
 
 /**
  * Fetches rooms from the API, filters to only "available" or "booked",

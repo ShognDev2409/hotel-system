@@ -62,7 +62,8 @@ const state = {
     isLoggedIn: state => state.isLoggedIn,
     currentUser: state => state.user,
     authToken: state => state.token,
-    userName: state => state.user ? state.user.name : null
+    userName: state => state.user ? state.user.name : null,
+    cusId: state => state.user ? state.user.c_id : null,
   }
   
   export default {

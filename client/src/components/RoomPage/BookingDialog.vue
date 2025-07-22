@@ -142,6 +142,7 @@
 
 <script>
 import BookingService from '@/services/bookingService.js';
+import { mapGetters } from 'vuex';
 
 export default {
   name: 'BookingDialog',
@@ -170,6 +171,7 @@ export default {
     }
   },
   computed: {
+    ...mapGetters('auth', ['cusId']), 
     numberOfNights() {
       if (!this.form.checkIn || !this.form.checkOut) return 0;
       const start = new Date(this.form.checkIn);
@@ -274,10 +276,9 @@ export default {
 
       const payload = {
         booking: {
-          cus_id: 1, // This should come from your logged-in user's state
+          cus_id: this.cusId, 
           startDate: this.form.checkIn,
           endDate: this.form.checkOut,
-          User_id: 1, // This should also come from user state
           payment_image: this.form.imageBase64,
         },
         detail: {
