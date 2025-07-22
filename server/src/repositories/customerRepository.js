@@ -56,3 +56,46 @@ exports.deleteCustomer = async (id) => {
 };
 
 
+exports.getCustomerBookingReport = async () => {
+  try {
+    const sql = `
+      SELECT 
+          c.c_id,
+          CONCAT(c.name, ' ', COALESCE(c.last_name, '')) AS customer_name,
+          COUNT(b.id) AS total_bookings,
+          SUM(b.total_price) AS total_spent
+      FROM customer c
+      LEFT JOIN booking b ON c.c_id = b.cus_id
+        AND b.status IN ('approved', 'checked_in', 'checked_out')
+      GROUP BY c.c_id
+      ORDER BY total_spent DESC
+    `;
+    console.log('Executing SQL:', sql);
+    const [rows] = await pool.query(sql);
+    console.log('Query result:', JSON.stringify(rows, null, 2));
+    return rows;
+  } catch (error) {
+    console.error('Error in getCustomerBookingReport:', error);
+    throw error;
+  }
+};
+
+exports.getCustomerBookingSummary = async () => {
+  try {
+    const sql = `
+      SELECT 
+          COUNT(DISTINCT b.cus_id) AS total_customers,
+          COUNT(b.id) AS total_bookings,
+          SUM(b.total_price) AS total_revenue
+      FROM booking b
+      WHERE b.status IN ('approved', 'checked_in', 'checked_out')
+    `;
+    console.log('Executing summary SQL:', sql);
+    const [rows] = await pool.query(sql);
+    console.log('Summary result:', JSON.stringify(rows[0], null, 2));
+    return rows[0];
+  } catch (error) {
+    console.error('Error in getCustomerBookingSummary:', error);
+    throw error;
+  }
+};

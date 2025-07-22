@@ -43,9 +43,7 @@ app.get('/api/customer/:id', customerController.getCustomerById);
 app.put('/api/customer/:id', customerController.updateCustomerById);
 app.delete('/api/customer/:id', customerController.deleteCustomerById);
 
-
-
-
+app.get('/api/customerReport', customerController.getFullCustomerBookingReport);
 // room detail 
 app.get('/api/details', detailController.getAllDetails);
 app.get('/api/details/:id', detailController.getDetailById);
@@ -65,13 +63,14 @@ app.put('/api/bookings/:id/reject', bookingController.rejectBooking);
 app.put('/api/bookings/:id/check_in', bookingController.checkInBooking);
 app.put('/api/bookings/:id/check_out', bookingController.checkOutBooking);
 app.delete('/api/bookings/:id', bookingController.deleteBooking);
-
-app.get('/api/bookings/:id/details', bookingController.getBookingDetails);
 //update booking details
+app.get('/api/bookings/:id/details', bookingController.getBookingDetails);
+
 app.patch('/api/booking-details/:detailId/checkin', bookingController.updateCheckIn);
 app.patch('/api/booking-details/:detailId/checkout', bookingController.updateCheckOut);
 
-// dashboard
+
+// booking report
 app.get('/api/booking/report', bookingController.getBookingReport);
 
 // income page with query param
@@ -91,8 +90,13 @@ app.all('*', (req, res) => {
   });
 });
 
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.url}`);
+  next();
+});
 // Global error handler
 app.use((err, req, res, next) => {
+ 
   console.error(err.stack);
   res.status(500).json({ success: false, message: 'Something went wrong!' });
 });
