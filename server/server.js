@@ -10,13 +10,13 @@ const employeeController = require('./src/controllers/employeeController');
 
 const app = express();
 app.use(cors());
-app.use(express.json({ 
+app.use(express.json({
   limit: '50mb',  // Increase from default 1mb to 50mb
-  extended: true 
+  extended: true
 }));
-app.use(express.urlencoded({ 
-  limit: '50mb', 
-  extended: true 
+app.use(express.urlencoded({
+  limit: '50mb',
+  extended: true
 }));
 // room type 
 app.get('/api/room-types', roomTypeController.getAllRoomTypes);
@@ -73,7 +73,7 @@ app.patch('/api/booking-details/:detailId/checkout', bookingController.updateChe
 app.get('/api/booking/report', bookingController.getBookingReport);
 
 // income page with query param
-app.get('/api/income/report', bookingController.getDashboardSummary);  
+app.get('/api/income/report', bookingController.getDashboardSummary);
 
 // employee
 app.get('/api/employees', employeeController.getEmployeeList);
