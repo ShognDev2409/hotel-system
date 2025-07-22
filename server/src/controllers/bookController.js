@@ -1,6 +1,20 @@
 const bookService = require('../services/bookService');
 const roomService = require('../services/roomService');
 
+function getTimestamp() {
+ const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0'); // 01–12
+  const day = String(now.getDate()).padStart(2, '0');       // 01–31
+
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 exports.getAllBookings = async (req, res, next) => {
   try {
     const bookings = await bookService.getAllBookings();
@@ -83,37 +97,7 @@ exports.createBookingWithDetail = async (req, res, next) => {
   }
 };
 
-// NEW: Update check-in date
-exports.updateCheckIn = async (req, res, next) => {
-  try {
-    const { checkInDate } = req.body;
-    const updated = await bookService.updateCheckInDate(req.params.detailId, checkInDate);
-    
-    if (!updated) {
-      return res.status(404).json({ success: false, message: 'Detail not found' });
-    }
-    
-    res.json({ success: true, message: 'Check-in updated' });
-  } catch (err) {
-    next(err);
-  }
-};
 
-// NEW: Update check-out date  
-exports.updateCheckOut = async (req, res, next) => {
-  try {
-    const { checkOutDate } = req.body;
-    const updated = await bookService.updateCheckOutDate(req.params.detailId, checkOutDate);
-    
-    if (!updated) {
-      return res.status(404).json({ success: false, message: 'Detail not found' });
-    }
-    
-    res.json({ success: true, message: 'Check-out updated' });
-  } catch (err) {
-    next(err);
-  }
-};
 
 exports.updateBookingStatus = async (req, res, next) => {
   try {
@@ -184,22 +168,64 @@ exports.getDashboardStats = async (req, res, next) => {
     next(err);
   }
 };
+// NEW: Update check-in date
+exports.updateCheckIn = async (req, res, next) => {
+  try {
+    const { checkInDate } = req.body;
+    const datenow = getTimestamp();
+    const updated = await bookService.updateCheckInDate(req.params.detailId, datenow);
+    
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Detail not found' });
+    }
+    
+     const detail = await bookService.getBookingDetailsById(req.params.detailId);
+      if (detail && detail.Room_id) {
+        console.log(`Updating room status for Room ID: ${detail.Room_id}`);
+        // Update room status to 'booked'
+        await roomService.updateRoomStatus(detail.Room_id, 'booked');
+        console.log(`Room status updated to 'booked' for Room ID: ${detail.Room_id}`);
+      }
+
+      res.json({ success: true, message: 'Check-In completed and room booked' ,
+         data: {
+          detailId: req.params.detailId,
+             roomId: detail.Room_id,
+          checkOutDate: datenow,
+          timestamp: getTimestamp()
+        }
+      });
+  } catch (err) {
+    next(err);
+  }
+};
 
 exports.updateCheckOut = async (req, res, next) => {
     try {
       const { checkOutDate } = req.body;
-      const updated = await bookService.updateCheckOutDate(req.params.detailId, checkOutDate);
+      const datenow = getTimestamp();
+      const updated = await bookService.updateCheckOutDate(req.params.detailId, datenow);
       
       if (!updated) {
         return res.status(404).json({ success: false, message: 'Detail not found' });
       }
       
-      const detail = await bookService.getBookingDetailById(req.params.detailId);
+      const detail = await bookService.getBookingDetailsById(req.params.detailId);
+      
       if (detail && detail.Room_id) {
         await roomService.updateRoomStatus(detail.Room_id, 'available');
+              console.log(`Room status updated to 'available' for Room ID: ${detail.Room_id}`);
       }
       
-      res.json({ success: true, message: 'Check-out completed and room available' });
+      res.json({ success: true, message: 'Check-out completed and room available' ,
+        data: {
+          detailId: req.params.detailId,
+          roomId: detail.Room_id,
+          checkOutDate: datenow,
+          timestamp: getTimestamp()
+        }
+
+      });
     } catch (err) {
       next(err);
     }
