@@ -1,11 +1,12 @@
 class Room {
-    constructor(id, name, status, roomType_id, price, roomTypeName) {
+    constructor(id, name, status, roomType_id, price, roomTypeName, maxGuests) {
       this.id = id;
       this.name = name;
       this.status = status;
       this.roomType_id = roomType_id;
-      this.price = price;
       this.roomTypeName = roomTypeName;
+      this.maxGuests = maxGuests;
+      this.price = price;
     }
   
     toJSON() {
@@ -16,6 +17,7 @@ class Room {
         price: this.price,
         roomTypeName: this.roomTypeName, // room type name included
         roomType_id: this.roomType_id,
+        maxGuests: this.maxGuests
       };
     }
   }

@@ -3,7 +3,7 @@ const Room = require('../models/roomModel');
 exports.getAllRooms = async () => {
     const rows = await roomRepo.findAll();
     return rows.map(row => new Room(
-        row.id, row.name, row.status, row.RoomType_id, row.price, row.roomTypeName
+        row.id, row.name, row.status, row.RoomType_id, row.price, row.roomTypeName, row.max_guests
     ));
 };
 
@@ -11,7 +11,7 @@ exports.getRoomById = async (id) => {
     const row = await roomRepo.findById(id);
     if (!row) return null;
     return new Room(
-        row.id, row.name, row.status, row.RoomType_id, row.price, row.roomTypeName
+        row.id, row.name, row.status, row.RoomType_id, row.price, row.roomTypeName, row.maxGuests
     );
 };
 
