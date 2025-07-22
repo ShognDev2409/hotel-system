@@ -190,16 +190,17 @@
 import api from '@/services/api'
 
 export default {
-  name: 'CustomerRegister',
-  
+  name: 'RegisterPage',
   data() {
     return {
       valid: false,
+      loading: false,
       showPassword: false,
       showConfirmPassword: false,
-      loading: false,
       errorMessage: '',
       successMessage: '',
+      
+      // Form data matching your API endpoint
       form: {
         name: '',
         last_name: '',
@@ -207,139 +208,151 @@ export default {
         email: '',
         address: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        // Additional fields required by your API
+        gender: 'M', // Default to Male, you can add gender selection to template if needed
+        birthday: '1990-01-01' // Default birthday, you can add date picker if needed
       },
       
-      // Validation Rules
+      // Validation rules
       nameRules: [
-        v => !!v || 'ກະລຸນາປ້ອນຊື່',
-        v => (v && v.length >= 1) || 'ຊື່ຕ້ອງມີຢ່າງນ້ອຍ 1 ຕົວອັກສອນ'
+        v => !!v || 'ຊື່ແມ່ນຈຳເປັນ',
+        v => (v && v.length >= 2) || 'ຊື່ຕ້ອງມີຢ່າງໜ້ອຍ 2 ຕົວອັກສອນ'
       ],
+      
       lastNameRules: [
-        v => !!v || 'ກະລຸນາປ້ອນນາມສະກຸນ',
-        v => (v && v.length >= 1) || 'ນາມສະກຸນຕ້ອງມີຢ່າງນ້ອຍ 1 ຕົວອັກສອນ'
+        v => !!v || 'ນາມສະກຸນແມ່ນຈຳເປັນ',
+        v => (v && v.length >= 2) || 'ນາມສະກຸນຕ້ອງມີຢ່າງໜ້ອຍ 2 ຕົວອັກສອນ'
       ],
+      
       telRules: [
-        v => !!v || 'ກະລຸນາປ້ອນເບີໂທ',
-        v => /^[0-9]{8,10}$/.test(v.replace(/[^0-9]/g, '')) || 'ເບີໂທຕ້ອງເປັນ 8-10 ຕົວເລກ'
+        v => !!v || 'ເບີໂທແມ່ນຈຳເປັນ',
+        v => /^\d{8,10}$/.test(v) || 'ເບີໂທຕ້ອງເປັນຕົວເລກ 8-10 ຫລັກ'
       ],
+      
       emailRules: [
-        v => !!v || 'ກະລຸນາປ້ອນອີເມວ',
-        v => /.+@.+\..+/.test(v) || 'ຮູບແບບອີເມວບໍ່ຖືກຕ້ອງ'
+        v => !!v || 'ອີເມວແມ່ນຈຳເປັນ',
+        v => /.+@.+\..+/.test(v) || 'ອີເມວບໍ່ຖືກຕ້ອງ'
       ],
+      
       addressRules: [
-        v => !!v || 'ກະລຸນາປ້ອນທີ່ຢູ່',
-        v => (v && v.length >= 5) || 'ທີ່ຢູ່ຕ້ອງມີຢ່າງນ້ອຍ 5 ຕົວອັກສອນ'
+        v => !!v || 'ທີ່ຢູ່ແມ່ນຈຳເປັນ',
+        v => (v && v.length >= 10) || 'ທີ່ຢູ່ຕ້ອງມີຢ່າງໜ້ອຍ 10 ຕົວອັກສອນ'
       ],
+      
       passwordRules: [
-        v => !!v || 'ກະລຸນາປ້ອນລະຫັດຜ່ານ',
-        v => (v && v.length >= 6) || 'ລະຫັດຕ້ອງຢ່າງນ້ອຍ 6 ຕົວອັກສອນ'
-      ]
-    }
-  },
-  
-  computed: {
-    // ใช้ computed property แทน data property สำหรับ confirmPasswordRules
-    confirmPasswordRules() {
-      return [
-        v => !!v || 'ກະລຸນາຢືນຢັນລະຫັດຜ່ານ',
-        v => v === this.form.password || 'ລະຫັດຜ່ານບໍ່ຕົງກັນ'
+        v => !!v || 'ລະຫັດຜ່ານແມ່ນຈຳເປັນ',
+        v => (v && v.length >= 6) || 'ລະຫັດຜ່ານຕ້ອງມີຢ່າງໜ້ອຍ 6 ຕົວອັກສອນ'
+      ],
+      
+      confirmPasswordRules: [
+        v => !!v || 'ຢືນຢັນລະຫັດຜ່ານແມ່ນຈຳເປັນ',
+        v => v === this.form.password || 'ລະຫັດຜ່ານບໍ່ກົງກັນ'
       ]
     }
   },
   
   methods: {
     async handleRegister() {
-      console.log('🚀 Starting registration process...')
+      // Clear previous messages
+      this.errorMessage = '';
+      this.successMessage = '';
       
-      // Debug validation first
-      this.checkFormValidation()
-      
+      // Validate form
       if (!this.$refs.form.validate()) {
-        console.log('❌ Form validation failed')
-        this.errorMessage = 'ກະລຸນາກວດສອບຂໍ້ມູນທີ່ປ້ອນໃຫ້ຖືກຕ້ອງ'
-        return
+        this.errorMessage = 'ກະລຸນາກວດສອບຂໍ້ມູນທີ່ປ້ອນ';
+        return;
       }
       
-      this.loading = true
-      this.errorMessage = ''
-      this.successMessage = ''
+      // Check if passwords match
+      if (this.form.password !== this.form.confirmPassword) {
+        this.errorMessage = 'ລະຫັດຜ່ານບໍ່ກົງກັນ';
+        return;
+      }
+      
+      this.loading = true;
       
       try {
-        // เตรียมข้อมูลที่จะส่งไป API
-        const registerData = {
-          name: this.form.name,
-          last_name: this.form.last_name,
-          tel: this.form.tel,
-          email: this.form.email,
-          address: this.form.address,
-          password: this.form.password,
-          gender: null,
-          birthday: null
-        }
+        // Prepare data for API (exclude confirmPassword)
+        const registrationData = {
+          name: this.form.name.trim(),
+          last_name: this.form.last_name.trim(),
+          gender: this.form.gender,
+          birthday: this.form.birthday,
+          tel: this.form.tel.trim(),
+          email: this.form.email.trim(),
+          address: this.form.address.trim(),
+          password: this.form.password
+        };
         
-        console.log('📋 Registration data:', {
-          ...registerData,
-          password: '[HIDDEN]'
-        })
+        console.log('Sending registration data:', registrationData);
         
-        // เรียกใช้ API
-        const response = await api.register(registerData)
-        console.log('✅ Registration response:', response.data)
+        // Make API call
+        const response = await fetch('http://localhost:3000/api/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(registrationData)
+        });
         
-        if (response.data.success) {
-          // ✅ แสดงข้อความสำเร็จ
-          this.successMessage = 'ລົງທະບຽນສຳເລັດ! ກະລຸນາເຂົ້າສູ່ລະບົບເພື່ອໃຊ້ບໍລິການ'
+        console.log('Response status:', response.status);
+        const responseData = await response.json();
+        console.log('Response data:', responseData);
+        
+        if (response.ok) {
+          // Success
+          this.successMessage = 'ລົງທະບຽນສຳເລັດ! ກະລຸນາເຂົ້າສູ່ລະບົບ';
           
-          // ❌ ไม่เก็บ Token (ไม่ auto-login)
-          // localStorage.setItem('token', response.data.token)
-          // localStorage.setItem('user', JSON.stringify(response.data.user))
+          // Reset form
+          this.resetForm();
           
-          // 🔄 Redirect ไปหน้า Login หลังจาก 3 วินาที
+          // Redirect to login after 2 seconds
           setTimeout(() => {
-            console.log('🔄 Redirecting to login page...')
-            this.$router.push({
-              path: '/login',
-              query: { 
-                email: this.form.email, // ส่ง email ไปใส่ใน login form
-                registered: 'true' // flag บอกว่าเพิ่งสมัครเสร็จ
-              }
-            })
-          }, 3000)
+            this.$router.push('/login');
+          }, 2000);
           
-          // Clear form
-          this.resetForm()
-        }
-      } catch (error) {
-        console.error('❌ Registration error:', error)
-        
-        if (error.response?.data?.message) {
-          this.errorMessage = this.translateErrorMessage(error.response.data.message)
-        } else if (error.message && error.message.includes('Network Error')) {
-          this.errorMessage = 'ບໍ່ສາມາດເຊື່ອມຕໍ່ກັບເຊີເວີໄດ້'
-        } else if (error.code === 'ECONNREFUSED') {
-          this.errorMessage = 'ເຊີເວີບໍ່ພ້ອມໃຫ້ບໍລິການ ກະລຸນາລອງໃໝ່ອີກຄັ້ງ'
         } else {
-          this.errorMessage = 'ເກີດຂໍ້ຜິດພາດໃນການລົງທະບຽນ'
+          // Handle error response
+          if (responseData.message) {
+            this.errorMessage = this.translateErrorMessage(responseData.message);
+          } else if (responseData.error) {
+            this.errorMessage = this.translateErrorMessage(responseData.error);
+          } else {
+            this.errorMessage = 'ເກີດຂໍ້ຜິດພາດ ກະລຸນາລອງໃໝ່';
+          }
         }
+        
+      } catch (error) {
+        console.error('Registration error:', error);
+        
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          this.errorMessage = 'ບໍ່ສາມາດເຊື່ອມຕໍ່ກັບເຊີເວີໄດ້ ກະລຸນາລອງໃໝ່';
+        } else {
+          this.errorMessage = 'ເກີດຂໍ້ຜິດພາດ ກະລຸນາລອງໃໝ່';
+        }
+        
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     },
-
-    // เพิ่ม method สำหรับแปลงข้อความ error
+    
     translateErrorMessage(message) {
+      // Translate common error messages to Lao
       const translations = {
-        'Email already registered': 'ອີເມວນີ້ຖືກລົງທະບຽນແລ້ວ',
-        'Name, email, password, and phone number are required': 'ກະລຸນາກຸກຂໍ້ມູນໃຫ້ຄົບຖ້ວນ',
-        'Please provide a valid email address': 'ຮູບແບບອີເມວບໍ່ຖືກຕ້ອງ',
-        'Password must be at least 6 characters long': 'ລະຫັດຜ່ານຕ້ອງມີຢ່າງນ້ອຍ 6 ຕົວອັກສອນ',
-        'Registration failed': 'ການລົງທະບຽນລົ້ມເຫລວ'
-      }
+        'Email already exists': 'ອີເມວນີ້ຖືກນຳໃຊ້ແລ້ວ',
+        'Phone number already exists': 'ເບີໂທນີ້ຖືກນຳໃຊ້ແລ້ວ',
+        'User already exists': 'ຜູ້ໃຊ້ນີ້ມີຢູ່ແລ້ວ',
+        'Invalid email format': 'ຮູບແບບອີເມວບໍ່ຖືກຕ້ອງ',
+        'Password too weak': 'ລະຫັດຜ່ານບໍ່ແຂງແກ່ນພໍ',
+        'Invalid phone number': 'ເບີໂທບໍ່ຖືກຕ້ອງ',
+        'Required fields missing': 'ມີຂໍ້ມູນທີ່ຈຳເປັນຍັງບໍ່ໄດ້ປ້ອນ'
+      };
       
-      return translations[message] || message
+      return translations[message] || message;
     },
-
+    
     resetForm() {
       this.form = {
         name: '',
@@ -348,118 +361,55 @@ export default {
         email: '',
         address: '',
         password: '',
-        confirmPassword: ''
-      }
+        confirmPassword: '',
+        gender: 'M',
+        birthday: '1990-01-01'
+      };
+      
       if (this.$refs.form) {
-        this.$refs.form.resetValidation()
+        this.$refs.form.reset();
+        this.$refs.form.resetValidation();
       }
+      
+      this.showPassword = false;
+      this.showConfirmPassword = false;
     },
-
-    // เพิ่ม method เพื่อ debug validation
+    
+    // Debug methods (remove in production)
     checkFormValidation() {
-      console.log('🔍 Form validation status:')
-      console.log('='.repeat(50))
-      console.log('Overall Valid:', this.valid)
-      console.log('Loading:', this.loading)
-      console.log('Button Disabled:', !this.valid || this.loading)
-      
-      console.log('\n📋 Form Data:')
-      console.log('name:', this.form.name || '[EMPTY]')
-      console.log('last_name:', this.form.last_name || '[EMPTY]')
-      console.log('tel:', this.form.tel || '[EMPTY]')
-      console.log('email:', this.form.email || '[EMPTY]')
-      console.log('address:', this.form.address || '[EMPTY]')
-      console.log('password:', this.form.password ? `[${this.form.password.length} chars]` : '[EMPTY]')
-      console.log('confirmPassword:', this.form.confirmPassword ? `[${this.form.confirmPassword.length} chars]` : '[EMPTY]')
-      console.log('passwordsMatch:', this.form.password === this.form.confirmPassword)
-      
-      console.log('\n✅ Validation Check:')
-      
-      // Check name
-      const nameValid = this.form.name && this.form.name.length >= 1
-      console.log('name valid:', nameValid ? '✅' : '❌', this.form.name)
-      
-      // Check last_name
-      const lastNameValid = this.form.last_name && this.form.last_name.length >= 1
-      console.log('last_name valid:', lastNameValid ? '✅' : '❌', this.form.last_name)
-      
-      // Check tel
-      const telValid = this.form.tel && /^[0-9]{8,10}$/.test(this.form.tel.replace(/[^0-9]/g, ''))
-      console.log('tel valid:', telValid ? '✅' : '❌', this.form.tel)
-      
-      // Check email
-      const emailValid = this.form.email && /.+@.+\..+/.test(this.form.email)
-      console.log('email valid:', emailValid ? '✅' : '❌', this.form.email)
-      
-      // Check address
-      const addressValid = this.form.address && this.form.address.length >= 5
-      console.log('address valid:', addressValid ? '✅' : '❌', this.form.address)
-      
-      // Check password
-      const passwordValid = this.form.password && this.form.password.length >= 6
-      console.log('password valid:', passwordValid ? '✅' : '❌', this.form.password ? '[SET]' : '[EMPTY]')
-      
-      // Check confirmPassword
-      const confirmPasswordValid = this.form.confirmPassword && this.form.confirmPassword === this.form.password
-      console.log('confirmPassword valid:', confirmPasswordValid ? '✅' : '❌', this.form.confirmPassword ? '[SET]' : '[EMPTY]')
-      
-      console.log('\n🔍 Individual Field Validation:')
-      
-      // Test each validation rule
-      this.nameRules.forEach((rule, index) => {
-        const result = rule(this.form.name)
-        console.log(`nameRules[${index}]:`, result === true ? '✅' : '❌', result)
-      })
-      
-      this.lastNameRules.forEach((rule, index) => {
-        const result = rule(this.form.last_name)
-        console.log(`lastNameRules[${index}]:`, result === true ? '✅' : '❌', result)
-      })
-      
-      this.telRules.forEach((rule, index) => {
-        const result = rule(this.form.tel)
-        console.log(`telRules[${index}]:`, result === true ? '✅' : '❌', result)
-      })
-      
-      this.emailRules.forEach((rule, index) => {
-        const result = rule(this.form.email)
-        console.log(`emailRules[${index}]:`, result === true ? '✅' : '❌', result)
-      })
-      
-      this.addressRules.forEach((rule, index) => {
-        const result = rule(this.form.address)
-        console.log(`addressRules[${index}]:`, result === true ? '✅' : '❌', result)
-      })
-      
-      this.passwordRules.forEach((rule, index) => {
-        const result = rule(this.form.password)
-        console.log(`passwordRules[${index}]:`, result === true ? '✅' : '❌', result)
-      })
-      
-      this.confirmPasswordRules.forEach((rule, index) => {
-        const result = rule(this.form.confirmPassword)
-        console.log(`confirmPasswordRules[${index}]:`, result === true ? '✅' : '❌', result)
-      })
-      
-      console.log('\n🎯 Summary:')
-      const allValid = nameValid && lastNameValid && telValid && emailValid && addressValid && passwordValid && confirmPasswordValid
-      console.log('All fields valid:', allValid ? '✅' : '❌')
-      console.log('Form.valid:', this.valid ? '✅' : '❌')
-      console.log('Should be able to submit:', allValid && this.valid ? '✅' : '❌')
-      console.log('='.repeat(50))
+      console.log('Form valid:', this.valid);
+      console.log('Form data:', this.form);
+      console.log('Form validation:', this.$refs.form.validate());
     },
-
-    // Test form submission without validation
+    
     testSubmit() {
-      console.log('🧪 Testing form submission...')
+      console.log('Test submit clicked');
+      console.log('Current form data:', this.form);
       
-      // Bypass validation temporarily
-      this.valid = true
-      
-      // Try to submit
-      this.handleRegister()
-    },
+      // Fill form with test data
+      this.form = {
+        name: 'Test',
+        last_name: 'User',
+        tel: '12345678',
+        email: 'test@example.com',
+        address: 'Test Address, Test City, Test Province',
+        password: 'testpassword',
+        confirmPassword: 'testpassword',
+        gender: 'M',
+        birthday: '1990-01-01'
+      };
+    }
+  },
+  
+  watch: {
+    // Watch for password changes to update confirm password validation
+    'form.password'() {
+      if (this.$refs.form && this.form.confirmPassword) {
+        this.$refs.form.validate();
+      }
+    }
   }
+
 }
 </script>
 

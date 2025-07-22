@@ -16,58 +16,48 @@
       <v-toolbar flat class="dialog-toolbar">
         <v-toolbar-title>Booking - {{ room.name }}</v-toolbar-title>
         <v-spacer />
-        <v-btn icon @click="dialog = false">
+        <v-btn icon @click="dialog = false" :disabled="submitting">
           <v-icon color="white">mdi-close</v-icon>
         </v-btn>
       </v-toolbar>
 
       <v-card-text class="dialog-content-area pa-5">
-        <p class="mb-6 grey--text text--darken-2">
-          ກະລຸນາຕື່ມຂໍ້ມູນການຈອງຂອງທ່ານໃຫ້ຄົບຖ້ວນ.
-        </p>
+        <v-row align="center" class="mb-5">
+          <v-col cols="12" sm="4">
+            <v-img :src="room.image" height="120px" class="rounded-lg elevation-2" cover></v-img>
+          </v-col>
+          <v-col cols="12" sm="8" class="pl-sm-5">
+            <h3 class="text-h6 font-weight-bold mb-2">{{ room.name }}</h3>
+            <p class="body-2 grey--text text--darken-3">{{ room.description }}</p>
+          </v-col>
+        </v-row>
+
+        <v-divider class="mb-6"></v-divider>
+
         <v-form ref="form" v-model="valid" lazy-validation>
+          <div class="info-block mb-6">
+            <h3 class="section-title">Guest Information</h3>
+            <v-list dense color="transparent">
+              <v-list-item>
+                <v-list-item-icon><v-icon color="grey darken-1">mdi-account</v-icon></v-list-item-icon>
+                <v-list-item-content><v-list-item-title>{{ form.name }}</v-list-item-title></v-list-item-content>
+              </v-list-item>
+              <v-list-item>
+                <v-list-item-icon><v-icon color="grey darken-1">mdi-email</v-icon></v-list-item-icon>
+                <v-list-item-content><v-list-item-title>{{ form.email }}</v-list-item-title></v-list-item-content>
+              </v-list-item>
+              <v-list-item>
+                <v-list-item-icon><v-icon color="grey darken-1">mdi-phone</v-icon></v-list-item-icon>
+                <v-list-item-content><v-list-item-title>{{ form.phone }}</v-list-item-title></v-list-item-content>
+              </v-list-item>
+            </v-list>
+          </div>
+          
           <v-row>
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="form.name" label="ຊື່" outlined dense :rules="[v => !!v || 'ກະລຸນາປ້ອນຊື່']" />
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="form.email" label="ອີເມວ" outlined dense :rules="[v => /.+@.+\..+/.test(v) || 'ອີເມວບໍ່ຖືກ']" />
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="form.phone" label="ເບີໂທ" outlined dense :rules="[v => !!v || 'ກະລຸນາປ້ອນເບີໂທ']" />
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="form.guests" label="ຈຳນວນຜູ້ໃຊ້ບໍລິການ" outlined dense type="number" :rules="[v => v > 0 || 'ຂໍ້ມູນບໍ່ຖືກ']" />
-            </v-col>
-
-            <v-col cols="12">
-              <v-file-input
-                v-model="form.imageFile"
-                @change="handleImageUpload"
-                label="ອັບໂຫລດຮູບບັດປະຈຳຕົວ"
-                outlined
-                dense
-                accept="image/*"
-                prepend-icon="mdi-camera"
-              ></v-file-input>
-              <v-img
-                v-if="form.imageBase64"
-                :src="form.imageBase64"
-                max-height="200"
-                contain
-                class="mt-2"
-                style="border: 1px dashed #ccc; border-radius: 4px;"
-              ></v-img>
-            </v-col>
-
-            <v-col cols="12" class="py-0 my-2">
-              <v-divider />
-            </v-col>
-
             <v-col cols="12" sm="6">
               <v-menu v-model="menuIn" :close-on-content-click="false" transition="scale-transition" offset-y min-width="auto">
                 <template #activator="{ on, attrs }">
-                  <v-text-field v-model="form.checkIn" label="Check In" prepend-inner-icon="mdi-calendar" readonly outlined dense v-bind="attrs" v-on="on" :rules="[v => !!v || 'ກະລຸນາເລືອກວັນທີ']"></v-text-field>
+                  <v-text-field v-model="form.checkIn" label="Check In" prepend-inner-icon="mdi-calendar" readonly outlined dense v-bind="attrs" v-on="on" :rules="[v => !!v || 'Please select a date']"></v-text-field>
                 </template>
                 <v-date-picker v-model="form.checkIn" @input="menuIn = false" :min="minDate" no-title></v-date-picker>
               </v-menu>
@@ -75,10 +65,55 @@
             <v-col cols="12" sm="6">
               <v-menu v-model="menuOut" :close-on-content-click="false" transition="scale-transition" offset-y min-width="auto">
                 <template #activator="{ on, attrs }">
-                  <v-text-field v-model="form.checkOut" label="Check Out" prepend-inner-icon="mdi-calendar" readonly outlined dense v-bind="attrs" v-on="on" :rules="[v => !!v || 'ກະລຸນາເລືອກວັນທີ']"></v-text-field>
+                  <v-text-field v-model="form.checkOut" label="Check Out" prepend-inner-icon="mdi-calendar" readonly outlined dense v-bind="attrs" v-on="on" :rules="[v => !!v || 'Please select a date']"></v-text-field>
                 </template>
                 <v-date-picker v-model="form.checkOut" @input="menuOut = false" :min="form.checkIn || minDate" no-title></v-date-picker>
               </v-menu>
+            </v-col>
+            
+            <v-col cols="12" v-if="numberOfNights > 0" class="date-summary">
+              <v-icon color="indigo">mdi-bed-clock</v-icon>
+              <span>Total Stay: <strong>{{ numberOfNights }} {{ numberOfNights > 1 ? 'Nights' : 'Night' }}</strong></span>
+            </v-col>
+
+            <v-col cols="12" class="mt-4">
+              <!-- Simple file input without hidden wrapper -->
+              <input
+                ref="hiddenFileInput"
+                type="file"
+                accept="image/*"
+                style="display: none"
+                @change="handleFileSelect"
+              />
+              
+              <div class="file-drop-zone" @click="triggerFileSelect">
+                <div v-if="!form.imageBase64" class="text-center placeholder-content">
+                  <v-icon class="upload-icon" size="48">mdi-cloud-upload-outline</v-icon>
+                  <div class="upload-text">Click to upload your Payment Statement</div>
+                  <div class="upload-subtext">PNG, JPG or GIF</div>
+                </div>
+                <div v-else class="image-preview-container">
+                  <v-img
+                    :src="form.imageBase64"
+                    max-height="200"
+                    contain
+                    class="image-preview"
+                  ></v-img>
+                  <v-btn
+                    icon
+                    small
+                    class="remove-image-btn"
+                    @click.stop="removeImage"
+                  >
+                    <v-icon color="error">mdi-close-circle</v-icon>
+                  </v-btn>
+                </div>
+              </div>
+              
+              <!-- Error message for validation -->
+              <div v-if="imageError" class="error--text text-caption mt-2">
+                {{ imageError }}
+              </div>
             </v-col>
           </v-row>
         </v-form>
@@ -88,10 +123,17 @@
 
       <v-card-actions class="pa-4">
         <v-spacer />
-        <v-btn text @click="dialog = false" large>ຍົກເລີກ</v-btn>
-        <v-btn class="dialog-btn" :disabled="!valid" @click="submit" large depressed>
+        <v-btn text @click="dialog = false" large :disabled="submitting">Cancel</v-btn>
+        <v-btn
+          class="dialog-btn"
+          :loading="submitting"
+          :disabled="!isFormValid || submitting"
+          @click="submit"
+          large
+          depressed
+        >
           <v-icon left>mdi-check-circle-outline</v-icon>
-          ຢືນຢັນການຈອງ
+          Confirm Booking
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -99,6 +141,8 @@
 </template>
 
 <script>
+import BookingService from '@/services/bookingService.js';
+
 export default {
   name: 'BookingDialog',
   props: {
@@ -108,50 +152,179 @@ export default {
   data() {
     return {
       dialog: false,
-      valid: false,
+      valid: true,
       menuIn: false,
       menuOut: false,
       minDate: new Date().toISOString().substr(0, 10),
       form: {
-        name: '',
-        email: '',
+        name: '', 
+        email: '', 
         phone: '',
-        guests: 1,
-        checkIn: '',
+        checkIn: '', 
         checkOut: '',
-        imageFile: null,
+        imageFile: null, 
         imageBase64: '',
-      }
+      },
+      submitting: false,
+      imageError: '',
+    }
+  },
+  computed: {
+    numberOfNights() {
+      if (!this.form.checkIn || !this.form.checkOut) return 0;
+      const start = new Date(this.form.checkIn);
+      const end = new Date(this.form.checkOut);
+      const diffTime = end - start;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays > 0 ? diffDays : 0;
+    },
+    isFormValid() {
+      return this.valid && 
+             this.form.checkIn && 
+             this.form.checkOut && 
+             this.form.imageBase64 &&
+             !this.imageError;
     }
   },
   methods: {
+    fetchUserData() {
+      const mockUser = { 
+        name: 'Somchai Jaidee', 
+        email: 'somchai.j@example.com', 
+        phone: '020 55 123 456' 
+      };
+      this.form.name = mockUser.name;
+      this.form.email = mockUser.email;
+      this.form.phone = mockUser.phone;
+    },
+    
+    triggerFileSelect() {
+      this.$refs.hiddenFileInput.click();
+    },
+    
+    handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (file) {
+        this.handleImageUpload(file);
+      }
+    },
+    
     handleImageUpload(file) {
+      // Reset error
+      this.imageError = '';
+      
       if (!file) {
         this.form.imageBase64 = '';
+        this.form.imageFile = null;
         return;
       }
+      
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      if (!validTypes.includes(file.type)) {
+        this.imageError = 'Please upload a valid image file (PNG, JPG, or GIF)';
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      if (file.size > maxSize) {
+        this.imageError = 'File size must be less than 5MB';
+        return;
+      }
+      
+      // Store the file
+      this.form.imageFile = file;
+      
+      // Convert to base64
       const reader = new FileReader();
       reader.onload = (e) => {
         this.form.imageBase64 = e.target.result;
-        console.log('--- Image Encoded to Base64 ---');
-        console.log(this.form.imageBase64);
-        console.log('-------------------------------');
       };
-      reader.onerror = (error) => console.error('Error reading file:', error);
+      reader.onerror = () => {
+        this.imageError = 'Error reading file. Please try again.';
+        this.form.imageBase64 = '';
+        this.form.imageFile = null;
+      };
       reader.readAsDataURL(file);
     },
-    submit() {
-      if (this.$refs.form.validate()) {
-        this.$emit('book', {
-          room: this.room,
-          details: this.form
-        });
-        this.dialog = false;
-        this.$nextTick(() => {
-          this.$refs.form.reset();
-          this.form.imageBase64 = ''; // Also clear the preview
-          this.$refs.form.resetValidation();
-        });
+    
+    removeImage() {
+      this.form.imageFile = null;
+      this.form.imageBase64 = '';
+      this.imageError = '';
+      // Reset the file input
+      if (this.$refs.hiddenFileInput) {
+        this.$refs.hiddenFileInput.value = '';
+      }
+    },
+    
+    async submit() {
+      // Additional validation
+      if (!this.form.imageBase64) {
+        this.imageError = 'Please upload a payment statement';
+        return;
+      }
+      
+      if (!this.$refs.form.validate()) {
+        return;
+      }
+      
+      this.submitting = true;
+
+      const payload = {
+        booking: {
+          cus_id: 1, // This should come from your logged-in user's state
+          startDate: this.form.checkIn,
+          endDate: this.form.checkOut,
+          User_id: 1, // This should also come from user state
+          payment_image: this.form.imageBase64,
+        },
+        detail: {
+          Room_id: this.room.id,
+          description: `Booking for room ${this.room.name} by ${this.form.name}`,
+        }
+      };
+
+      try {
+        const response = await BookingService.createBooking(payload);
+        if (response.success) {
+          this.$emit('book-success');
+          this.dialog = false;
+          // Reset form
+          this.resetForm();
+          alert(response.message);
+          this.$router.push('/booking-list');
+        } else {
+          alert('An error occurred: ' + response.message);
+        }
+      } catch (error) {
+        console.error('Booking error:', error);
+        alert('Failed to create the booking. Please try again later.');
+      } finally {
+        this.submitting = false;
+      }
+    },
+    
+    resetForm() {
+      this.form.checkIn = '';
+      this.form.checkOut = '';
+      this.form.imageFile = null;
+      this.form.imageBase64 = '';
+      this.imageError = '';
+      if (this.$refs.hiddenFileInput) {
+        this.$refs.hiddenFileInput.value = '';
+      }
+    }
+  },
+  created() {
+    this.fetchUserData();
+  },
+  watch: {
+    dialog(val) {
+      if (!val) {
+        // Reset form when dialog closes
+        this.resetForm();
       }
     }
   }
@@ -159,7 +332,6 @@ export default {
 </script>
 
 <style scoped>
-/* All the dialog-specific styles are now contained here */
 .details-btn {
   background: linear-gradient(45deg, #F5B93F, #f7b023) !important;
   color: white !important;
@@ -187,5 +359,73 @@ export default {
   color: white !important;
   font-weight: bold !important;
   text-transform: none !important;
+}
+.info-block {
+  background-color: #fff;
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 1px solid #eee;
+}
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+.file-drop-zone {
+  border: 2px dashed #ccc;
+  border-radius: 12px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #fff;
+  position: relative;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.file-drop-zone:hover {
+  border-color: #F5B93F;
+  background-color: #fffaf0;
+}
+.placeholder-content {
+  width: 100%;
+}
+.placeholder-content .upload-icon {
+  color: #F5B93F;
+}
+.placeholder-content .upload-text {
+  font-weight: 500;
+  margin-top: 8px;
+}
+.placeholder-content .upload-subtext {
+  font-size: 0.8rem;
+  color: #999;
+}
+.image-preview-container {
+  position: relative;
+  width: 100%;
+}
+.image-preview {
+  border-radius: 8px;
+}
+.remove-image-btn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.date-summary {
+  background-color: #f1f3ff;
+  border-radius: 8px;
+  padding: 12px 16px;
+  text-align: center;
+  font-weight: 500;
+  color: #3f51b5;
+}
+.error--text {
+  color: #ff5252;
 }
 </style>
